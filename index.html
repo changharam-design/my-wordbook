@@ -3,147 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>오늘의 단어장</title>
+    <title>나의 단어 앱</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { --ios-blue: #007AFF; --bg-color: #f2f2f7; --card-bg: #ffffff; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: env(safe-area-inset-top) 20px 100px 20px; }
         
+        /* 헤더 고정 */
         header { position: sticky; top: 0; background: var(--bg-color); padding: 15px 0; z-index: 100; border-bottom: 0.5px solid #c6c6c8; margin-bottom: 20px; }
-        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        h1 { font-size: 22px; margin: 0; font-weight: 800; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        h1 { font-size: 20px; margin: 0; font-weight: 800; }
         
-        .controls { display: flex; gap: 10px; align-items: center; }
-        select { flex-grow: 1; padding: 12px; border-radius: 12px; border: 1px solid #d1d1d6; background: white; font-size: 16px; outline: none; -webkit-appearance: none; }
-        
+        /* 상단 버튼/정보 영역 */
+        .info-bar { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #8e8e93; }
+        .count-badge { background: #e5e5ea; color: #1c1c1e; padding: 4px 10px; border-radius: 12px; }
         .btn-group { display: flex; gap: 8px; }
-        .icon-btn { background: var(--ios-blue); color: white; border: none; width: 44px; height: 44px; border-radius: 12px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
-        .icon-btn:active { transform: scale(0.9); }
-        .icon-btn.sync { background: #34c759; } /* 새로고침은 초록색 */
+        .icon-btn { background: var(--ios-blue); color: white; border: none; width: 40px; height: 40px; border-radius: 10px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .icon-btn.sync { background: #34c759; }
 
-        .list-container { display: grid; gap: 15px; }
-        .card { background: var(--card-bg); border-radius: 20px; padding: 35px 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
-        .card:active { transform: scale(0.98); background: #fafafa; }
+        /* 메인 화면: 그리드형 단어집 목록 */
+        .folder-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 10px; }
+        .folder-card { background: white; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.1s; }
+        .folder-card:active { transform: scale(0.95); background: #f0f0f0; }
+        .folder-icon { font-size: 40px; margin-bottom: 10px; display: block; }
+        .folder-name { font-size: 15px; font-weight: 700; color: #1c1c1e; word-break: break-all; }
+        .folder-stats { font-size: 12px; color: #007AFF; margin-top: 5px; font-weight: 600; }
 
-        .check-mark { position: absolute; top: 18px; left: 18px; font-size: 24px; color: #d1d1d6; padding: 5px; z-index: 10; }
-        .card.checked .check-mark { color: #ff3b30; }
-
-        .word { font-size: 38px; font-weight: 800; color: #1c1c1e; display: block; word-break: break-all; }
+        /* 단어 학습 화면 리스트 */
+        .list-container { display: grid; gap: 15px; margin-top: 10px; }
+        .word-card { background: white; border-radius: 20px; padding: 35px 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; cursor: pointer; }
+        .check-mark { position: absolute; top: 18px; left: 18px; font-size: 24px; color: #d1d1d6; z-index: 10; }
+        .word-card.checked .check-mark { color: #ff3b30; }
+        .word-text { font-size: 36px; font-weight: 800; }
         .details { margin-top: 25px; padding-top: 25px; border-top: 1px solid #f2f2f7; display: none; }
-        .card.open .details { display: block; }
-        
-        .reading { font-size: 17px; color: #8e8e93; margin-bottom: 10px; }
-        .meaning { font-size: 24px; color: var(--ios-blue); font-weight: 700; }
+        .word-card.open .details { display: block; }
+        .reading { font-size: 16px; color: #8e8e93; }
+        .meaning { font-size: 22px; color: var(--ios-blue); font-weight: 700; margin-top: 5px; }
 
-        .status-bar { font-size: 12px; color: #8e8e93; text-align: center; margin-top: 10px; }
+        /* 하단 뒤로가기 버튼 */
+        .back-btn { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1c1c1e; color: white; border: none; padding: 12px 25px; border-radius: 25px; font-weight: 600; z-index: 200; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<header>
+<header id="mainHeader">
     <div class="header-top">
-        <h1>📚 나의 단어장</h1>
+        <h1 id="titleText">📁 단어장 목록</h1>
         <div class="btn-group">
-            <button class="icon-btn sync" onclick="syncCurrentSheet()" title="새로고침"><i class="fa-solid fa-rotate"></i></button>
-            <button class="icon-btn" onclick="shuffleWords()" title="섞기"><i class="fa-solid fa-shuffle"></i></button>
+            <div id="topStats" class="info-bar hidden">
+                <span class="count-badge" id="checkCountText">0/0</span>
+            </div>
+            <button class="icon-btn sync hidden" id="syncBtn" onclick="syncCurrentSheet()"><i class="fa-solid fa-rotate"></i></button>
+            <button class="icon-btn hidden" id="shuffleBtn" onclick="shuffleWords()"><i class="fa-solid fa-shuffle"></i></button>
         </div>
     </div>
-    <div class="controls">
-        <select id="dateSelect" onchange="changeSheet(this.value)">
-            <option value="">불러오는 중...</option>
-        </select>
-    </div>
-    <div id="statusBar" class="status-bar"></div>
 </header>
 
-<div id="list" class="list-container"></div>
+<!-- 메인 화면: 폴더 그리드 -->
+<div id="folderGrid" class="folder-grid"></div>
+
+<!-- 학습 화면: 단어 리스트 -->
+<div id="wordList" class="list-container hidden"></div>
+
+<button id="backBtn" class="back-btn hidden" onclick="goHome()">목록으로 돌아가기</button>
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDFQddYbqXTPPmJJe6iL5lECoB4aQeoyZSNRbZDAlB5KnJ_ey0Qk0CkA4MnZuCLd8s/exec";
     
+    let sheetList = [];
     let currentWords = [];
-    let currentSheet = "";
+    let currentSheetName = "";
 
-    // 1. 초기화: 시트 목록 로드 (캐시 확인)
     async function init() {
-        const cachedList = localStorage.getItem('sheet_list');
-        if (cachedList) {
-            renderDateSelect(JSON.parse(cachedList));
-            updateStatus("시트 목록 로드 완료 (캐시)");
-        }
-        
+        const cached = localStorage.getItem('sheet_list');
+        if (cached) renderFolderGrid(JSON.parse(cached));
+
         try {
             const res = await fetch(SCRIPT_URL);
             const result = await res.json();
-            localStorage.setItem('sheet_list', JSON.stringify(result.data));
-            renderDateSelect(result.data);
-            updateStatus("최신 목록 업데이트 완료");
-        } catch (e) {
-            updateStatus("오프라인 모드");
-        }
+            sheetList = result.data;
+            localStorage.setItem('sheet_list', JSON.stringify(sheetList));
+            renderFolderGrid(sheetList);
+        } catch (e) { console.log("Offline mode"); }
     }
 
-    function renderDateSelect(list) {
-        const select = document.getElementById('dateSelect');
-        const prevValue = select.value;
-        select.innerHTML = '<option value="">복습 날짜 선택</option>';
+    // 메인 화면: 네모난 앱 아이콘 형태의 목록 생성
+    function renderFolderGrid(list) {
+        const grid = document.getElementById('folderGrid');
+        grid.innerHTML = '';
         list.slice().reverse().forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = name;
-            select.appendChild(opt);
+            const stats = getSheetStats(name);
+            const card = document.createElement('div');
+            card.className = 'folder-card';
+            card.onclick = () => openSheet(name);
+            card.innerHTML = `
+                <span class="folder-icon">📓</span>
+                <div class="folder-name">${name}</div>
+                <div class="folder-stats">${stats.checked}/${stats.total}</div>
+            `;
+            grid.appendChild(card);
         });
-        if (prevValue) select.value = prevValue;
     }
 
-    // 2. 시트 선택 시: 캐시 우선 로드 후 백그라운드 업데이트
-    async function changeSheet(name) {
-        if (!name) return;
-        currentSheet = name;
+    // 시트별 통계 계산 (체크된 수 / 전체 수)
+    function getSheetStats(sheetName) {
+        const data = JSON.parse(localStorage.getItem(`data_${sheetName}`) || "[]");
+        const total = data.length;
+        let checked = 0;
+        data.forEach(item => {
+            if (localStorage.getItem(`check_${sheetName}_${item.word}`) === "true") checked++;
+        });
+        return { checked, total };
+    }
+
+    async function openSheet(name) {
+        currentSheetName = name;
+        document.getElementById('folderGrid').classList.add('hidden');
+        document.getElementById('wordList').classList.remove('hidden');
+        document.getElementById('backBtn').classList.remove('hidden');
+        document.getElementById('titleText').innerText = name;
         
-        // 1순위: 캐시 데이터 확인 및 렌더링
-        const cachedData = localStorage.getItem(`data_${name}`);
-        if (cachedData) {
-            currentWords = JSON.parse(cachedData);
-            render();
-            updateStatus(`${name} 로드 완료 (캐시)`);
-        } else {
-            document.getElementById('list').innerHTML = '<div style="text-align:center; padding:50px; color:#8e8e93;">데이터를 처음 가져오는 중...</div>';
-        }
+        // 버튼 및 정보 표시
+        document.getElementById('topStats').classList.remove('hidden');
+        document.getElementById('syncBtn').classList.remove('hidden');
+        document.getElementById('shuffleBtn').classList.remove('hidden');
 
-        // 2순위: 백그라운드에서 서버 데이터 가져오기 (자동 업데이트는 선택사항, 여기선 수동 권장)
-        if (!cachedData) syncCurrentSheet();
+        const cached = localStorage.getItem(`data_${name}`);
+        if (cached) {
+            currentWords = JSON.parse(cached);
+            renderWords();
+        } else {
+            syncCurrentSheet();
+        }
     }
 
-    // 3. 현재 시트 강제 동기화 (새로고침 버튼)
+    function goHome() {
+        location.reload(); // 가장 깔끔하게 목록 갱신을 위해 리로드 사용
+    }
+
     async function syncCurrentSheet() {
-        if (!currentSheet) return;
-        updateStatus("서버와 동기화 중...");
+        const listDiv = document.getElementById('wordList');
+        listDiv.innerHTML = '<div style="text-align:center; padding:50px;">동기화 중...</div>';
         try {
-            const res = await fetch(`${SCRIPT_URL}?sheetName=${encodeURIComponent(currentSheet)}`);
+            const res = await fetch(`${SCRIPT_URL}?sheetName=${encodeURIComponent(currentSheetName)}`);
             const result = await res.json();
             currentWords = result.data;
-            localStorage.setItem(`data_${currentSheet}`, JSON.stringify(result.data));
-            render();
-            updateStatus("동기화 완료");
-        } catch (e) {
-            updateStatus("동기화 실패");
-        }
+            localStorage.setItem(`data_${currentSheetName}`, JSON.stringify(currentWords));
+            renderWords();
+        } catch (e) { alert("연결 실패"); }
     }
 
-    function render() {
-        const listDiv = document.getElementById('list');
+    function renderWords() {
+        const listDiv = document.getElementById('wordList');
         listDiv.innerHTML = '';
-        currentWords.forEach((item) => {
-            const isChecked = localStorage.getItem(`check_${currentSheet}_${item.word}`) === "true";
+        let checkCount = 0;
+
+        currentWords.forEach(item => {
+            const isChecked = localStorage.getItem(`check_${currentSheetName}_${item.word}`) === "true";
+            if (isChecked) checkCount++;
+            
             const card = document.createElement('div');
-            card.className = `card ${isChecked ? 'checked' : ''}`;
+            card.className = `word-card ${isChecked ? 'checked' : ''}`;
             card.innerHTML = `
                 <div class="check-mark" onclick="toggleCheck(event, '${item.word}', this)">
                     <i class="fa-${isChecked ? 'solid' : 'regular'} fa-circle-check"></i>
                 </div>
                 <div onclick="this.parentElement.classList.toggle('open')">
-                    <span class="word">${item.word}</span>
+                    <span class="word-text">${item.word}</span>
                     <div class="details">
                         <div class="reading">${item.reading || ''}</div>
                         <div class="meaning">${item.meaning}</div>
@@ -152,23 +180,15 @@
             `;
             listDiv.appendChild(card);
         });
-        window.scrollTo(0, 0);
-    }
-
-    function shuffleWords() {
-        if (currentWords.length === 0) return;
-        for (let i = currentWords.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [currentWords[i], currentWords[j]] = [currentWords[j], currentWords[i]];
-        }
-        render();
+        document.getElementById('checkCountText').innerText = `${checkCount}/${currentWords.length}`;
     }
 
     function toggleCheck(event, word, element) {
         event.stopPropagation();
         const card = element.parentElement;
-        const key = `check_${currentSheet}_${word}`;
+        const key = `check_${currentSheetName}_${word}`;
         const isChecked = card.classList.toggle('checked');
+        
         if (isChecked) {
             localStorage.setItem(key, "true");
             element.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
@@ -176,10 +196,12 @@
             localStorage.removeItem(key);
             element.innerHTML = '<i class="fa-regular fa-circle-check"></i>';
         }
+        renderWords(); // 상단 숫자 갱신을 위해 다시 그림
     }
 
-    function updateStatus(msg) {
-        document.getElementById('statusBar').innerText = msg;
+    function shuffleWords() {
+        currentWords.sort(() => Math.random() - 0.5);
+        renderWords();
     }
 
     init();
