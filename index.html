@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>My Wordbook</title>
+    <style>
+        :root { --ios-blue: #007AFF; --bg-color: #f2f2f7; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: 20px; padding-top: 60px; }
+        
+        header { position: fixed; top: 0; left: 0; right: 0; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 100; border-bottom: 0.5px solid #d1d1d6; }
+        h1 { font-size: 20px; margin: 0; font-weight: 700; }
+        
+        .refresh-btn { background: var(--ios-blue); color: white; border: none; padding: 8px 16px; border-radius: 18px; font-size: 14px; font-weight: 600; active { opacity: 0.7; } }
+        
+        .list-container { display: grid; gap: 12px; margin-top: 20px; }
+        .card { background: white; border-radius: 14px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
+        .card:active { transform: scale(0.97); background: #fafafa; }
+        
+        .word-row { display: flex; justify-content: space-between; align-items: flex-start; }
+        .word { font-size: 22px; font-weight: 700; color: #1c1c1e; }
+        .reading { font-size: 14px; color: #8e8e93; margin-top: 2px; }
+        
+        .meaning { margin-top: 12px; padding-top: 12px; border-top: 0.5px solid #f2f2f7; color: var(--ios-blue); font-size: 18px; font-weight: 500; display: none; }
+        
+        /* 터치했을 때 뜻 보이기 */
+        .card.show .meaning { display: block; animation: fadeIn 0.2s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .loading { text-align: center; color: #8e8e93; margin-top: 50px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>📚 My 단어장</h1>
+    <button class="refresh-btn" onclick="fetchData()">새로고침</button>
+</header>
+
+<div class="list-container" id="wordList">
+    <div class="loading">단어를 가져오는 중...</div>
+</div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyOJL8pofZ1opoRDrrEUpMhsuXZsiXwSZ10CQgtevOgIpMcYqUXMosHis_w9Tc1rZrL/exec";
+
+    async function fetchData() {
+        const container = document.getElementById('wordList');
+        container.innerHTML = '<div class="loading">데이터 갱신 중...</div>';
+        
+        try {
+            const response = await fetch(SCRIPT_URL);
+            const data = await response.json();
+            
+            container.innerHTML = '';
+            data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = () => card.classList.toggle('show');
+                
+                card.innerHTML = `
+                    <div class="word-row">
+                        <div>
+                            <div class="word">${item.word}</div>
+                            <div class="reading">${item.reading || ''}</div>
+                        </div>
+                    </div>
+                    <div class="meaning">${item.meaning}</div>
+                `;
+                container.appendChild(card);
+            });
+        } catch (e) {
+            container.innerHTML = '<div class="loading">데이터를 불러오지 못했습니다.</div>';
+        }
+    }
+
+    // 앱 실행 시 자동 로드
+    fetchData();
+</script>
+
+</body>
+</html>
