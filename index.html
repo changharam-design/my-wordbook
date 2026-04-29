@@ -3,44 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>나만의 단어장</title>
+    <title>오늘의 단어장</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { --ios-blue: #007AFF; --bg-color: #f2f2f7; --card-bg: #ffffff; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: env(safe-area-inset-top) 20px 100px 20px; }
         
-        /* 상단 고정 헤더 */
+        /* 헤더 섹션 */
         header { position: sticky; top: 0; background: var(--bg-color); padding: 15px 0; z-index: 100; border-bottom: 0.5px solid #c6c6c8; margin-bottom: 20px; }
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         h1 { font-size: 22px; margin: 0; font-weight: 800; }
         
-        /* 컨트롤 섹션 (선택 & 섞기) */
+        /* 컨트롤 섹션 */
         .controls { display: flex; gap: 10px; align-items: center; }
-        select { flex-grow: 1; padding: 12px; border-radius: 12px; border: 1px solid #d1d1d6; background: white; font-size: 16px; outline: none; appearance: none; -webkit-appearance: none; }
-        .shuffle-btn { background: var(--ios-blue); color: white; border: none; width: 44px; height: 44px; border-radius: 12px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
+        select { flex-grow: 1; padding: 10px; border-radius: 12px; border: 1px solid #d1d1d6; background: white; font-size: 16px; outline: none; }
+        .shuffle-btn { background: var(--ios-blue); color: white; border: none; width: 44px; height: 44px; border-radius: 12px; font-size: 18px; cursor: pointer; transition: transform 0.1s; }
         .shuffle-btn:active { transform: scale(0.9); }
 
         /* 단어 카드 리스트 */
         .list-container { display: grid; gap: 15px; }
-        .card { background: var(--card-bg); border-radius: 20px; padding: 35px 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; }
-        .card:active { background: #fafafa; transform: scale(0.98); }
+        .card { background: var(--card-bg); border-radius: 20px; padding: 30px 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; cursor: pointer; transition: all 0.2s; }
+        .card:active { background: #fafafa; }
 
-        /* 미암기 체크 표시 (상단 왼쪽) */
-        .check-mark { position: absolute; top: 18px; left: 18px; font-size: 24px; color: #d1d1d6; padding: 5px; z-index: 10; }
-        .card.checked .check-mark { color: #ff3b30; } /* 체크 시 빨간색 강조 */
+        /* 체크박스 스타일 */
+        .check-mark { position: absolute; top: 15px; left: 15px; font-size: 22px; color: #d1d1d6; padding: 5px; }
+        .card.checked .check-mark { color: #ff3b30; } /* 체크 시 빨간색 */
 
-        /* A열: 단어 (크고 굵게) */
-        .word { font-size: 38px; font-weight: 800; color: #1c1c1e; display: block; word-break: break-all; line-height: 1.2; }
+        /* 단어 텍스트 */
+        .word { font-size: 36px; font-weight: 800; color: #1c1c1e; display: block; word-break: break-all; }
         
-        /* B/C열: 독음/뜻 (클릭 시 노출) */
-        .details { margin-top: 25px; padding-top: 25px; border-top: 1px solid #f2f2f7; display: none; }
+        /* 상세 정보 (독음/뜻) */
+        .details { margin-top: 25px; padding-top: 20px; border-top: 1px solid #f2f2f7; display: none; }
         .card.open .details { display: block; animation: slideUp 0.3s ease-out; }
         
-        .reading { font-size: 17px; color: #8e8e93; margin-bottom: 10px; }
-        .meaning { font-size: 24px; color: var(--ios-blue); font-weight: 700; }
+        .reading { font-size: 16px; color: #8e8e93; margin-bottom: 8px; }
+        .meaning { font-size: 22px; color: var(--ios-blue); font-weight: 700; }
 
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .loading { text-align: center; color: #8e8e93; padding: 60px 20px; font-size: 16px; }
+        .loading { text-align: center; color: #8e8e93; padding: 50px; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -48,37 +48,36 @@
 <header>
     <div class="header-top">
         <h1>📚 나의 단어장</h1>
-        <button class="shuffle-btn" onclick="shuffleWords()" title="단어 순서 섞기">
+        <button class="shuffle-btn" onclick="shuffleWords()" title="단어 섞기">
             <i class="fa-solid fa-shuffle"></i>
         </button>
     </div>
     <div class="controls">
         <select id="dateSelect" onchange="changeSheet(this.value)">
-            <option value="">불러오는 중...</option>
+            <option value="">날짜 선택 중...</option>
         </select>
     </div>
 </header>
 
 <div id="list" class="list-container">
-    <div class="loading">날짜를 선택해 복습을 시작하세요.</div>
+    <div class="loading">날짜를 선택하면 단어장이 열립니다.</div>
 </div>
 
 <script>
-    // 🔗 사용자님의 최신 Apps Script URL
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDFQddYbqXTPPmJJe6iL5lECoB4aQeoyZSNRbZDAlB5KnJ_ey0Qk0CkA4MnZuCLd8s/exec";
+    // ⚠️ 본인의 구글 웹 앱 URL을 여기에 붙여넣으세요!
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyOJL8pofZ1opoRDrrEUpMhsuXZsiXwSZ10CQgtevOgIpMcYqUXMosHis_w9Tc1rZrL/exec";
     
     let currentWords = [];
     let currentSheet = "";
 
-    // 1. 날짜(시트 탭) 목록 불러오기
+    // 1. 날짜(시트) 목록 불러오기
     async function init() {
         try {
-            const res = await fetch(SCRIPT_URL);
+            const res = await fetch(https://script.google.com/macros/s/AKfycbwDFQddYbqXTPPmJJe6iL5lECoB4aQeoyZSNRbZDAlB5KnJ_ey0Qk0CkA4MnZuCLd8s/exec);
             const result = await res.json();
             const select = document.getElementById('dateSelect');
-            select.innerHTML = '<option value="">복습 날짜 선택</option>';
+            select.innerHTML = '<option value="">복습할 날짜 선택</option>';
             
-            // 시트 목록을 최신순(역순)으로 표시
             result.data.reverse().forEach(name => {
                 const opt = document.createElement('option');
                 opt.value = name;
@@ -86,17 +85,16 @@
                 select.appendChild(opt);
             });
         } catch (e) {
-            console.error(e);
-            document.querySelector('.loading').innerText = "데이터 연결 실패. 주소를 확인해주세요.";
+            alert("데이터를 불러오지 못했습니다.");
         }
     }
 
-    // 2. 특정 날짜 선택 시 단어 로드
+    // 2. 시트 변경 시 단어 로드
     async function changeSheet(name) {
         if (!name) return;
         currentSheet = name;
         const listDiv = document.getElementById('list');
-        listDiv.innerHTML = '<div class="loading">데이터 로딩 중...</div>';
+        listDiv.innerHTML = '<div class="loading">단어를 불러오는 중...</div>';
         
         try {
             const res = await fetch(`${SCRIPT_URL}?sheetName=${encodeURIComponent(name)}`);
@@ -104,16 +102,16 @@
             currentWords = result.data;
             render();
         } catch (e) {
-            listDiv.innerHTML = '<div class="loading">데이터를 가져오지 못했습니다.</div>';
+            listDiv.innerHTML = '<div class="loading">에러가 발생했습니다.</div>';
         }
     }
 
-    // 3. 단어 카드 리스트 화면 그리기
+    // 3. 화면 그리기
     function render() {
         const listDiv = document.getElementById('list');
         listDiv.innerHTML = '';
         
-        currentWords.forEach((item) => {
+        currentWords.forEach((item, index) => {
             const isChecked = getCheckStatus(item.word);
             const card = document.createElement('div');
             card.className = `card ${isChecked ? 'checked' : ''}`;
@@ -125,7 +123,7 @@
                 <div onclick="this.parentElement.classList.toggle('open')">
                     <span class="word">${item.word}</span>
                     <div class="details">
-                        <div class="reading">${item.reading || ''}</div>
+                        <div class="reading">${item.reading}</div>
                         <div class="meaning">${item.meaning}</div>
                     </div>
                 </div>
@@ -135,7 +133,7 @@
         window.scrollTo(0, 0);
     }
 
-    // 4. 단어 랜덤 섞기 (Shuffle)
+    // 4. 단어 섞기 (Fisher-Yates 알고리즘)
     function shuffleWords() {
         if (currentWords.length === 0) return;
         for (let i = currentWords.length - 1; i > 0; i--) {
@@ -145,11 +143,11 @@
         render();
     }
 
-    // 5. 체크 표시 토글 및 저장 (LocalStorage)
+    // 5. 체크 표시 저장 및 토글
     function toggleCheck(event, word, element) {
-        event.stopPropagation(); // 카드 열림 방지
+        event.stopPropagation(); // 카드 열리는 이벤트 방지
         const card = element.parentElement;
-        const key = `check_${currentSheet}_${word}`;
+        const key = `check_${currentSheet}_${word}`; // 시트별 단어 고유 키
         
         const isChecked = card.classList.toggle('checked');
         if (isChecked) {
@@ -161,11 +159,12 @@
         }
     }
 
-    // 6. 저장된 체크 상태 불러오기
+    // 6. 체크 상태 불러오기
     function getCheckStatus(word) {
         return localStorage.getItem(`check_${currentSheet}_${word}`) === "true";
     }
 
+    // 시작
     init();
 </script>
 
