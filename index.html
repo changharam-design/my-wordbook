@@ -9,19 +9,19 @@
         :root { --ios-blue: #007AFF; --bg-color: #f2f2f7; --card-bg: #ffffff; --ios-red: #ff3b30; --ios-orange: #ff9500; --ios-yellow: #ffcc00; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: env(safe-area-inset-top) 0 40px 0; overflow-x: hidden; width: 100vw; height: 100vh; }
         
-        /* 스크린 전환 애니메이션 */
+        /* 스크린 애니메이션 */
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); background: var(--bg-color); box-sizing: border-box; overflow-y: auto; padding: 20px; padding-top: env(safe-area-inset-top); }
         .screen-main { z-index: 10; }
         .screen-detail { z-index: 20; transform: translateX(100%); box-shadow: -5px 0 15px rgba(0,0,0,0.1); }
         .screen-detail.active { transform: translateX(0); }
 
-        /* 헤더 */
         header { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 0.5px solid #c6c6c8; margin-bottom: 20px; }
         h1 { font-size: 20px; margin: 0; font-weight: 800; }
         
         .btn-group { display: flex; gap: 8px; align-items: center; }
         .icon-btn { background: var(--ios-blue); color: white; border: none; width: 38px; height: 38px; border-radius: 10px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .icon-btn.sync { background: #34c759; }
+        .icon-btn.sort { background: #5856d6; }
 
         /* 폴더 그리드 */
         .folder-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
@@ -30,44 +30,45 @@
         .folder-icon { font-size: 40px; margin-bottom: 10px; display: block; }
         .folder-name { font-size: 14px; font-weight: 700; color: #1c1c1e; }
         .folder-stats { font-size: 12px; color: #8e8e93; margin-top: 5px; font-weight: 600; }
-        .folder-stats.learned { color: var(--ios-blue); }
 
         /* 단어 카드 리스트 */
         .word-list { display: grid; gap: 15px; }
-        .word-card { background: white; border-radius: 20px; padding: 35px 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; transition: background 0.3s; }
+        .word-card { background: white; border-radius: 20px; padding: 40px 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; transition: all 0.3s; user-select: none; -webkit-user-select: none; }
         
-        /* 하이브리드 버튼 */
-        .hybrid-btn { position: absolute; top: 15px; left: 15px; width: 34px; height: 34px; border-radius: 17px; border: 2px solid #d1d1d6; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; transition: all 0.2s; user-select: none; -webkit-user-select: none; }
-        .word-card.lvl-1 .hybrid-btn { background: var(--ios-yellow); border-color: var(--ios-yellow); }
-        .word-card.lvl-3 .hybrid-btn { background: var(--ios-orange); border-color: var(--ios-orange); }
-        .word-card.lvl-5 .hybrid-btn { background: var(--ios-red); border-color: var(--ios-red); box-shadow: 0 0 8px rgba(255,59,48,0.4); }
+        /* 횟수 뱃지 (단어 옆에 작게 표시) */
+        .count-badge { position: absolute; top: 15px; right: 20px; font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 10px; color: white; opacity: 0; transition: opacity 0.2s; }
+        .word-card.lvl-1 .count-badge { background: var(--ios-yellow); opacity: 1; }
+        .word-card.lvl-3 .count-badge { background: var(--ios-orange); opacity: 1; }
+        .word-card.lvl-5 .count-badge { background: var(--ios-red); opacity: 1; }
         
-        .word-text { font-size: 34px; font-weight: 800; }
-        .details { margin-top: 25px; padding-top: 25px; border-top: 1px solid #f2f2f7; display: none; }
+        /* 카드 배경 강조 */
+        .word-card.lvl-1 { border-left: 5px solid var(--ios-yellow); }
+        .word-card.lvl-3 { border-left: 5px solid var(--ios-orange); }
+        .word-card.lvl-5 { border-left: 5px solid var(--ios-red); background: #fff9f9; }
+
+        .word-text { font-size: 36px; font-weight: 800; display: block; pointer-events: none; }
+        .details { margin-top: 25px; padding-top: 25px; border-top: 1px solid #f2f2f7; display: none; pointer-events: none; }
         .word-card.open .details { display: block; }
         .reading { font-size: 16px; color: #8e8e93; }
-        .meaning { font-size: 22px; color: var(--ios-blue); font-weight: 700; margin-top: 5px; }
+        .meaning { font-size: 24px; color: var(--ios-blue); font-weight: 700; margin-top: 5px; }
 
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<!-- 메인 화면 -->
 <div id="screenMain" class="screen screen-main">
-    <header>
-        <h1>📁 단어장 목록</h1>
-    </header>
+    <header><h1>📁 단어장 목록</h1></header>
     <div id="folderGrid" class="folder-grid"></div>
 </div>
 
-<!-- 상세 화면 (단어장 내부) -->
 <div id="screenDetail" class="screen screen-detail">
     <header>
         <h1 id="detailTitle">단어장</h1>
         <div class="btn-group">
-            <span id="detailStats" style="font-size:14px; font-weight:600; color:#8e8e93;"></span>
+            <span id="detailStats" style="font-size:13px; font-weight:600; color:#8e8e93;"></span>
             <button class="icon-btn sync" onclick="syncCurrentSheet()"><i class="fa-solid fa-rotate"></i></button>
+            <button class="icon-btn sort" onclick="sortUnlearned()" title="모르는 단어 정렬"><i class="fa-solid fa-arrow-up-wide-short"></i></button>
             <button class="icon-btn" onclick="shuffleWords()"><i class="fa-solid fa-shuffle"></i></button>
         </div>
     </header>
@@ -76,12 +77,8 @@
 
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDFQddYbqXTPPmJJe6iL5lECoB4aQeoyZSNRbZDAlB5KnJ_ey0Qk0CkA4MnZuCLd8s/exec";
-    
-    let sheetList = [];
-    let currentWords = [];
-    let currentSheetName = "";
+    let sheetList = [], currentWords = [], currentSheetName = "";
 
-    // 1. 초기화 및 폴더 목록 로드
     async function init() {
         const cached = localStorage.getItem('sheet_list');
         if (cached) renderFolderGrid(JSON.parse(cached));
@@ -91,25 +88,18 @@
             sheetList = result.data;
             localStorage.setItem('sheet_list', JSON.stringify(sheetList));
             renderFolderGrid(sheetList);
-        } catch (e) { console.error("오프라인 모드"); }
+        } catch (e) { console.log("Offline"); }
         setupSwipeBack();
     }
 
-    // 2. 폴더 그리드 렌더링
     function renderFolderGrid(list) {
         const grid = document.getElementById('folderGrid');
         grid.innerHTML = '';
-        
-        // 집중 공략 폴더 데이터 수집 (카운트 5회 이상)
         const hotWords = [];
-        list.forEach(sheetName => {
-            const data = JSON.parse(localStorage.getItem(`data_${sheetName}`) || "[]");
-            data.forEach(item => {
-                if (getCount(sheetName, item.word) >= 5) hotWords.push({...item, originSheet: sheetName});
-            });
+        list.forEach(s => {
+            const data = JSON.parse(localStorage.getItem(`data_${s}`) || "[]");
+            data.forEach(item => { if (getCount(s, item.word) >= 5) hotWords.push({...item, originSheet: s}); });
         });
-
-        // 🔥 집중 공략 폴더 추가
         if (hotWords.length > 0) {
             const hotCard = document.createElement('div');
             hotCard.className = 'folder-card hot';
@@ -117,23 +107,16 @@
             hotCard.innerHTML = `<span class="folder-icon">🔥</span><div class="folder-name">집중 공략</div><div class="folder-stats" style="color:var(--ios-red)">남음: ${hotWords.length}</div>`;
             grid.appendChild(hotCard);
         }
-
-        // 일반 날짜 폴더
         list.slice().reverse().forEach(name => {
             const stats = getSheetStats(name);
             const card = document.createElement('div');
             card.className = 'folder-card';
             card.onclick = () => openSheet(name);
-            card.innerHTML = `
-                <span class="folder-icon">📓</span>
-                <div class="folder-name">${name}</div>
-                <div class="folder-stats learned">${stats.total - stats.notLearned} / ${stats.total}</div>
-            `;
+            card.innerHTML = `<span class="folder-icon">📓</span><div class="folder-name">${name}</div><div class="folder-stats">${stats.total - stats.notLearned} / ${stats.total}</div>`;
             grid.appendChild(card);
         });
     }
 
-    // 통계 계산 (전체 - 남은것 / 전체)
     function getSheetStats(sheetName) {
         const data = JSON.parse(localStorage.getItem(`data_${sheetName}`) || "[]");
         let notLearned = 0;
@@ -141,88 +124,71 @@
         return { notLearned, total: data.length };
     }
 
-    // 3. 단어장 열기
     async function openSheet(name) {
         currentSheetName = name;
         document.getElementById('detailTitle').innerText = name;
         document.getElementById('screenDetail').classList.add('active');
-        
         const cached = localStorage.getItem(`data_${name}`);
         if (cached) { currentWords = JSON.parse(cached); renderWords(); } 
         else { syncCurrentSheet(); }
     }
 
     function openHotSheet(words) {
-        currentSheetName = "HOT";
-        currentWords = words;
+        currentSheetName = "HOT"; currentWords = words;
         document.getElementById('detailTitle').innerText = "🔥 집중 공략";
         document.getElementById('screenDetail').classList.add('active');
         renderWords();
     }
 
-    // 4. 단어 리스트 렌더링
     function renderWords() {
         const listDiv = document.getElementById('wordList');
         listDiv.innerHTML = '';
-        
-        // 체크된 것(카운트 > 0)을 위로, 나머지는 아래로 분리하여 렌더링
-        const learned = currentWords.filter(w => getCount(currentSheetName === "HOT" ? w.originSheet : currentSheetName, w.word) === 0);
-        const unlearned = currentWords.filter(w => getCount(currentSheetName === "HOT" ? w.originSheet : currentSheetName, w.word) > 0);
-        
-        [...unlearned, ...learned].forEach(item => {
+        currentWords.forEach(item => {
             const sheetName = currentSheetName === "HOT" ? item.originSheet : currentSheetName;
             const count = getCount(sheetName, item.word);
             const card = document.createElement('div');
             card.className = `word-card ${count >= 5 ? 'lvl-5' : count >= 3 ? 'lvl-3' : count >= 1 ? 'lvl-1' : ''}`;
-            
             card.innerHTML = `
-                <div class="hybrid-btn" onpointerdown="startLongPress(event, '${sheetName}', '${item.word}', this)">
-                    ${count > 0 ? count : ''}
-                </div>
-                <div onclick="this.parentElement.classList.toggle('open')">
-                    <span class="word-text">${item.word}</span>
-                    <div class="details">
-                        <div class="reading">${item.reading || ''}</div>
-                        <div class="meaning">${item.meaning}</div>
-                    </div>
+                <div class="count-badge">${count}회</div>
+                <div class="word-text">${item.word}</div>
+                <div class="details">
+                    <div class="reading">${item.reading || ''}</div>
+                    <div class="meaning">${item.meaning}</div>
                 </div>`;
+            
+            // 복합 조작 이벤트 바인딩
+            let timer, lastTap = 0;
+            card.onpointerdown = (e) => {
+                timer = setTimeout(() => { incrementCount(sheetName, item.word); if(window.navigator.vibrate) window.navigator.vibrate(40); }, 800);
+            };
+            card.onpointerup = () => clearTimeout(timer);
+            card.onclick = (e) => {
+                const now = Date.now();
+                if (now - lastTap < 300) { clearTimeout(timer); resetCount(sheetName, item.word); }
+                else { card.classList.toggle('open'); }
+                lastTap = now;
+            };
             listDiv.appendChild(card);
         });
-        
         const stats = getSheetStats(currentSheetName);
         document.getElementById('detailStats').innerText = currentSheetName === "HOT" ? "" : `${stats.total - stats.notLearned}/${stats.total}`;
     }
 
-    // 5. 하이브리드 버튼 로직 (클릭 & 길게 누르기)
-    let pressTimer;
-    function startLongPress(e, sheet, word, el) {
-        let isLong = false;
-        pressTimer = setTimeout(() => {
-            isLong = true;
-            resetCount(sheet, word);
-            if(window.navigator.vibrate) window.navigator.vibrate(50);
-        }, 600);
-
-        const endPress = () => {
-            clearTimeout(pressTimer);
-            if (!isLong) incrementCount(sheet, word);
-            window.removeEventListener('pointerup', endPress);
-        };
-        window.addEventListener('pointerup', endPress);
-    }
-
     function getCount(sheet, word) { return parseInt(localStorage.getItem(`cnt_${sheet}_${word}`) || "0"); }
-    function incrementCount(sheet, word) {
-        const newCnt = getCount(sheet, word) + 1;
-        localStorage.setItem(`cnt_${sheet}_${word}`, newCnt);
-        renderWords();
-    }
-    function resetCount(sheet, word) {
-        localStorage.removeItem(`cnt_${sheet}_${word}`);
+    function incrementCount(sheet, word) { localStorage.setItem(`cnt_${sheet}_${word}`, getCount(sheet, word) + 1); renderWords(); }
+    function resetCount(sheet, word) { localStorage.removeItem(`cnt_${sheet}_${word}`); renderWords(); }
+
+    function sortUnlearned() {
+        currentWords.sort((a, b) => {
+            const aSheet = currentSheetName === "HOT" ? a.originSheet : currentSheetName;
+            const bSheet = currentSheetName === "HOT" ? b.originSheet : currentSheetName;
+            const aCnt = getCount(aSheet, a.word) > 0 ? 1 : 0;
+            const bCnt = getCount(bSheet, b.word) > 0 ? 1 : 0;
+            return bCnt - aCnt;
+        });
         renderWords();
     }
 
-    // 6. 스와이프 뒤로가기
     function setupSwipeBack() {
         let startX = 0;
         const detail = document.getElementById('screenDetail');
@@ -233,10 +199,7 @@
         });
         detail.addEventListener('touchend', (e) => {
             let moveX = e.changedTouches[0].pageX - startX;
-            if (startX < 50 && moveX > 100) {
-                detail.classList.remove('active');
-                renderFolderGrid(sheetList);
-            }
+            if (startX < 50 && moveX > 100) { detail.classList.remove('active'); renderFolderGrid(sheetList); }
             detail.style.transform = '';
         });
     }
@@ -249,11 +212,10 @@
             currentWords = result.data;
             localStorage.setItem(`data_${currentSheetName}`, JSON.stringify(currentWords));
             renderWords();
-        } catch (e) { alert("연결 실패"); }
+        } catch (e) { console.log("Sync Error"); }
     }
 
     function shuffleWords() { currentWords.sort(() => Math.random() - 0.5); renderWords(); }
-
     init();
 </script>
 </body>
