@@ -7,6 +7,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { --ios-blue: #007AFF; --bg-color: #f2f2f7; --card-bg: #ffffff; --ios-red: #ff3b30; --ios-orange: #ff9500; --ios-yellow: #ffcc00; }
+        
+        /* [중요] 전체 드래그 및 길게 누르기 팝업 방지 */
+        * { 
+            -webkit-tap-highlight-color: transparent; 
+            -webkit-touch-callout: none; /* 시스템 팝업 방지 */
+            user-select: none;           /* 텍스트 선택 방지 */
+            -webkit-user-select: none; 
+        }
+
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: env(safe-area-inset-top) 0 40px 0; overflow-x: hidden; width: 100vw; height: 100vh; }
         
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); background: var(--bg-color); box-sizing: border-box; overflow-y: auto; padding: 20px; padding-top: env(safe-area-inset-top); }
@@ -32,8 +41,7 @@
         .word-list { display: grid; gap: 15px; }
         .word-card { background: white; border-radius: 20px; display: flex; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); min-height: 110px; transition: all 0.3s; }
         
-        /* 왼쪽 체크 버튼 영역 */
-        .side-btn { width: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f0f0f2; border-right: 1px solid #e5e5ea; cursor: pointer; flex-shrink: 0; transition: background 0.2s; -webkit-tap-highlight-color: transparent; }
+        .side-btn { width: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f0f0f2; border-right: 1px solid #e5e5ea; cursor: pointer; flex-shrink: 0; transition: background 0.2s; }
         .side-btn .count-num { font-size: 18px; font-weight: 900; color: #8e8e93; }
         .side-btn i { font-size: 20px; color: #c7c7cc; margin-bottom: 4px; }
 
@@ -43,7 +51,7 @@
         .word-card.lvl-1 .count-num, .word-card.lvl-3 .count-num, .word-card.lvl-5 .count-num,
         .word-card.lvl-1 i, .word-card.lvl-3 i, .word-card.lvl-5 i { color: white; }
 
-        .content-area { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; justify-content: center; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .content-area { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; justify-content: center; text-align: center; cursor: pointer; }
         .word-text { font-size: 32px; font-weight: 800; color: #1c1c1e; }
         .details { margin-top: 12px; padding-top: 12px; border-top: 1px solid #f2f2f7; display: none; }
         .word-card.open .details { display: block; }
@@ -164,23 +172,23 @@
             const cArea = card.querySelector('.content-area');
             let timer;
 
-            // 1. 체크/증가 로직 (클릭 시 +1)
-            sBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                incrementCount(sheetName, item.word);
-            });
-
-            // 2. 초기화 로직 (길게 누르기)
+            // [수정] 길게 누를 때 브라우저 기본 동작 방지
             sBtn.addEventListener('touchstart', (e) => {
+                // e.preventDefault(); // 필요 시 활성화 (단, 스크롤 방해 가능성 있음)
                 timer = setTimeout(() => {
                     resetCount(sheetName, item.word);
                     if(window.navigator.vibrate) window.navigator.vibrate(60);
                     timer = null;
                 }, 700);
-            });
-            sBtn.addEventListener('touchend', () => clearTimeout(timer));
+            }, { passive: true });
 
-            // 3. 정답 노출 (단어 영역 클릭)
+            sBtn.addEventListener('touchend', (e) => {
+                if (timer) {
+                    clearTimeout(timer);
+                    incrementCount(sheetName, item.word);
+                }
+            });
+
             cArea.addEventListener('click', () => {
                 card.classList.toggle('open');
             });
