@@ -6,16 +6,8 @@
     <title>나의 단어 앱</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --ios-blue: #007AFF; --bg-color: #f2f2f7; --card-bg: #ffffff; --ios-red: #ff3b30; --ios-orange: #ff9500; --ios-yellow: #ffcc00; }
-        
-        /* [중요] 전체 드래그 및 길게 누르기 팝업 방지 */
-        * { 
-            -webkit-tap-highlight-color: transparent; 
-            -webkit-touch-callout: none; /* 시스템 팝업 방지 */
-            user-select: none;           /* 텍스트 선택 방지 */
-            -webkit-user-select: none; 
-        }
-
+        :root { --ios-blue: #007AFF; --bg-color: #f2f2f7; --card-bg: #ffffff; --ios-red: #ff3b30; --ios-orange: #ff9500; --ios-yellow: #ffcc00; --ios-green: #34c759; }
+        * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: env(safe-area-inset-top) 0 40px 0; overflow-x: hidden; width: 100vw; height: 100vh; }
         
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); background: var(--bg-color); box-sizing: border-box; overflow-y: auto; padding: 20px; padding-top: env(safe-area-inset-top); }
@@ -28,11 +20,12 @@
         
         .btn-group { display: flex; gap: 8px; align-items: center; }
         .icon-btn { background: var(--ios-blue); color: white; border: none; width: 38px; height: 38px; border-radius: 10px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .icon-btn.sync { background: #34c759; }
+        .icon-btn.sync { background: var(--ios-green); }
         .icon-btn.sort { background: #5856d6; }
 
         .folder-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .folder-card { background: white; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; }
+        .folder-card.today { border: 2.5px solid var(--ios-green); }
         .folder-card.hot { border: 2px solid var(--ios-red); }
         .folder-icon { font-size: 40px; margin-bottom: 10px; display: block; }
         .folder-name { font-size: 14px; font-weight: 700; color: #1c1c1e; }
@@ -56,7 +49,11 @@
         .details { margin-top: 12px; padding-top: 12px; border-top: 1px solid #f2f2f7; display: none; }
         .word-card.open .details { display: block; }
         .reading { font-size: 14px; color: #8e8e93; margin-bottom: 2px; }
-        .meaning { font-size: 19px; color: var(--ios-blue); font-weight: 700; }
+        .meaning { font-size: 19px; color: var(--ios-blue); font-weight: 700; margin-bottom: 8px; }
+        
+        /* 예문 스타일 */
+        .example-box { background: #f8f8f8; padding: 10px; border-radius: 10px; font-size: 14px; color: #444; line-height: 1.4; text-align: left; position: relative; }
+        .example-box::before { content: "ex"; position: absolute; top: -8px; left: 10px; background: #8e8e93; color: white; font-size: 10px; font-weight: bold; padding: 1px 4px; border-radius: 4px; }
 
         .hidden { display: none !important; }
     </style>
@@ -101,18 +98,36 @@
     function renderFolderGrid(list) {
         const grid = document.getElementById('folderGrid');
         grid.innerHTML = '';
+        
+        const allWords = [];
         const hotWords = [];
+        
         list.forEach(s => {
             const data = JSON.parse(localStorage.getItem(`data_${s}`) || "[]");
-            data.forEach(item => { if (getCount(s, item.word) >= 5) hotWords.push({...item, originSheet: s}); });
+            data.forEach(item => {
+                const wordObj = {...item, originSheet: s};
+                allWords.push(wordObj);
+                if (getCount(s, item.word) >= 5) hotWords.push(wordObj);
+            });
         });
+
+        if (allWords.length > 0) {
+            const todayWords = getTodayWords(allWords);
+            const todayCard = document.createElement('div');
+            todayCard.className = 'folder-card today';
+            todayCard.onclick = () => openSpecialSheet("TODAY", todayWords, "📅 오늘의 단어");
+            todayCard.innerHTML = `<span class="folder-icon">📅</span><div class="folder-name">오늘의 단어</div><div class="folder-stats" style="color:var(--ios-green)">오늘의 50개</div>`;
+            grid.appendChild(todayCard);
+        }
+
         if (hotWords.length > 0) {
             const hotCard = document.createElement('div');
             hotCard.className = 'folder-card hot';
-            hotCard.onclick = () => openHotSheet(hotWords);
-            hotCard.innerHTML = `<span class="folder-icon">🔥</span><div class="folder-name">집중 공략</div><div class="folder-stats" style="color:var(--ios-red)">남음: ${hotWords.length}</div>`;
+            hotCard.onclick = () => openSpecialSheet("HOT", hotWords, "🔥 집중 공략");
+            hotCard.innerHTML = `<span class="folder-icon">🔥</span><div class="folder-name">집중 공략</div><div class="folder-stats" style="color:var(--ios-red)">미암기: ${hotWords.length}</div>`;
             grid.appendChild(hotCard);
         }
+
         list.slice().reverse().forEach(name => {
             const stats = getSheetStats(name);
             const card = document.createElement('div');
@@ -121,6 +136,19 @@
             card.innerHTML = `<span class="folder-icon">📓</span><div class="folder-name">${name}</div><div class="folder-stats">${stats.total - stats.notLearned} / ${stats.total}</div>`;
             grid.appendChild(card);
         });
+    }
+
+    function getTodayWords(allWords) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const seed = todayStr.split('-').join(''); 
+        let seededWords = [...allWords];
+        let m = seededWords.length, t, i;
+        let s = parseInt(seed);
+        while (m) {
+            i = Math.floor((Math.abs(Math.sin(s++)) * 10000) % m--);
+            t = seededWords[m]; seededWords[m] = seededWords[i]; seededWords[i] = t;
+        }
+        return seededWords.slice(0, 50);
     }
 
     function getSheetStats(sheetName) {
@@ -139,9 +167,10 @@
         else { syncCurrentSheet(); }
     }
 
-    function openHotSheet(words) {
-        currentSheetName = "HOT"; currentWords = words;
-        document.getElementById('detailTitle').innerText = "🔥 집중 공략";
+    function openSpecialSheet(type, words, title) {
+        currentSheetName = type;
+        currentWords = words;
+        document.getElementById('detailTitle').innerText = title;
         document.getElementById('screenDetail').classList.add('active');
         renderWords();
     }
@@ -150,21 +179,22 @@
         const listDiv = document.getElementById('wordList');
         listDiv.innerHTML = '';
         currentWords.forEach(item => {
-            const sheetName = currentSheetName === "HOT" ? item.originSheet : currentSheetName;
+            const sheetName = (currentSheetName === "HOT" || currentSheetName === "TODAY") ? item.originSheet : currentSheetName;
             const count = getCount(sheetName, item.word);
             const card = document.createElement('div');
             card.className = `word-card ${count >= 5 ? 'lvl-5' : count >= 3 ? 'lvl-3' : count >= 1 ? 'lvl-1' : ''}`;
             
+            // 예문 HTML (있을 때만 생성)
+            const exampleHtml = item.example ? `<div class="example-box">${item.example}</div>` : '';
+
             card.innerHTML = `
-                <div class="side-btn">
-                    <i class="${count > 0 ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i>
-                    <span class="count-num">${count > 0 ? count : ''}</span>
-                </div>
+                <div class="side-btn"><i class="${count > 0 ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i><span class="count-num">${count > 0 ? count : ''}</span></div>
                 <div class="content-area">
                     <span class="word-text">${item.word}</span>
                     <div class="details">
                         <div class="reading">${item.reading || ''}</div>
                         <div class="meaning">${item.meaning}</div>
+                        ${exampleHtml}
                     </div>
                 </div>`;
             
@@ -172,9 +202,7 @@
             const cArea = card.querySelector('.content-area');
             let timer;
 
-            // [수정] 길게 누를 때 브라우저 기본 동작 방지
             sBtn.addEventListener('touchstart', (e) => {
-                // e.preventDefault(); // 필요 시 활성화 (단, 스크롤 방해 가능성 있음)
                 timer = setTimeout(() => {
                     resetCount(sheetName, item.word);
                     if(window.navigator.vibrate) window.navigator.vibrate(60);
@@ -183,20 +211,22 @@
             }, { passive: true });
 
             sBtn.addEventListener('touchend', (e) => {
-                if (timer) {
-                    clearTimeout(timer);
-                    incrementCount(sheetName, item.word);
-                }
+                if (timer) { clearTimeout(timer); incrementCount(sheetName, item.word); }
             });
 
-            cArea.addEventListener('click', () => {
-                card.classList.toggle('open');
-            });
-
+            cArea.addEventListener('click', () => { card.classList.toggle('open'); });
             listDiv.appendChild(card);
         });
-        const stats = getSheetStats(currentSheetName);
-        document.getElementById('detailStats').innerText = currentSheetName === "HOT" ? "" : `${stats.total - stats.notLearned}/${stats.total}`;
+        updateStatsUI();
+    }
+
+    function updateStatsUI() {
+        if (currentSheetName === "HOT" || currentSheetName === "TODAY") {
+            document.getElementById('detailStats').innerText = "";
+        } else {
+            const stats = getSheetStats(currentSheetName);
+            document.getElementById('detailStats').innerText = `${stats.total - stats.notLearned}/${stats.total}`;
+        }
     }
 
     function getCount(sheet, word) { return parseInt(localStorage.getItem(`cnt_${sheet}_${word}`) || "0"); }
@@ -205,11 +235,11 @@
 
     function sortUnlearned() {
         currentWords.sort((a, b) => {
-            const aSheet = currentSheetName === "HOT" ? a.originSheet : currentSheetName;
-            const bSheet = currentSheetName === "HOT" ? b.originSheet : currentSheetName;
-            const aCnt = getCount(aSheet, a.word) > 0 ? 1 : 0;
-            const bCnt = getCount(bSheet, b.word) > 0 ? 1 : 0;
-            return bCnt - aCnt;
+            const aS = (currentSheetName === "HOT" || currentSheetName === "TODAY") ? a.originSheet : currentSheetName;
+            const bS = (currentSheetName === "HOT" || currentSheetName === "TODAY") ? b.originSheet : currentSheetName;
+            const aC = getCount(aS, a.word) > 0 ? 1 : 0;
+            const bC = getCount(bS, b.word) > 0 ? 1 : 0;
+            return bC - aC;
         });
         renderWords();
     }
@@ -230,7 +260,7 @@
     }
 
     async function syncCurrentSheet() {
-        if(currentSheetName === "HOT") return;
+        if(currentSheetName === "HOT" || currentSheetName === "TODAY") return;
         try {
             const res = await fetch(`${SCRIPT_URL}?sheetName=${encodeURIComponent(currentSheetName)}`);
             const result = await res.json();
