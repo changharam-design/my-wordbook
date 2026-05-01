@@ -10,7 +10,6 @@
         * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: env(safe-area-inset-top) 0 40px 0; overflow-x: hidden; width: 100vw; height: 100vh; }
         
-        /* 화면 전환 효과 */
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); background: var(--bg-color); box-sizing: border-box; overflow-y: auto; padding: 20px; padding-top: env(safe-area-inset-top); }
         .screen-main { z-index: 10; }
         .screen-detail { z-index: 20; transform: translateX(100%); box-shadow: -5px 0 15px rgba(0,0,0,0.1); }
@@ -24,7 +23,6 @@
         .icon-btn.sync { background: var(--ios-green); }
         .icon-btn.sort { background: #5856d6; }
 
-        /* 폴더 그리드 */
         .folder-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .folder-card { background: white; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; }
         .folder-card.today { border: 2.5px solid var(--ios-green); }
@@ -33,7 +31,6 @@
         .folder-name { font-size: 14px; font-weight: 700; color: #1c1c1e; }
         .folder-stats { font-size: 12px; color: #8e8e93; margin-top: 5px; font-weight: 600; }
 
-        /* 단어 카드 */
         .word-list { display: grid; gap: 15px; }
         .word-card { background: white; border-radius: 20px; display: flex; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); min-height: 110px; transition: all 0.3s; }
         
@@ -54,7 +51,6 @@
         .reading { font-size: 14px; color: #8e8e93; margin-bottom: 2px; }
         .meaning { font-size: 19px; color: var(--ios-blue); font-weight: 700; margin-bottom: 8px; }
         
-        /* 예문 박스 스타일 */
         .example-box { background: #f8f8f7; padding: 12px; border-radius: 12px; font-size: 14px; color: #444; line-height: 1.5; text-align: left; margin-top: 8px; border-left: 4px solid #d1d1d6; word-break: break-all; }
         .example-label { font-weight: 800; color: #8e8e93; font-size: 11px; text-transform: uppercase; margin-bottom: 4px; display: block; }
 
@@ -83,7 +79,7 @@
 
 <script>
     // 사용자님의 최신 스크립트 URL 반영 완료
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzCL-fNbgKayhyyMr_o9wE3oKeYzspn0FIKzQOIEPGmer3KQcAcwoqKfiYJ6jih0YKI/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzgwssWklL8xlWb972-hPQ6jfU5AK0jASI6BZfBAAISEs8AiUN_lhBE972osAom5lx0/exec";
     
     let sheetList = [], currentWords = [], currentSheetName = "";
 
@@ -176,8 +172,6 @@
         renderWords();
     }
 
-// index.html 내의 renderWords 함수 부분만 아래와 같이 수정되거나 전체 교체하시면 됩니다.
-
     function renderWords() {
         const listDiv = document.getElementById('wordList');
         listDiv.innerHTML = '';
@@ -187,20 +181,18 @@
             const card = document.createElement('div');
             card.className = `word-card ${count >= 5 ? 'lvl-5' : count >= 3 ? 'lvl-3' : count >= 1 ? 'lvl-1' : ''}`;
             
-            // [수정 포인트] 예문이 실제 문자로 존재하는지 엄격하게 검사합니다.
-            let exampleHtml = '';
-            if (item.example && String(item.example).trim().length > 0) {
-                exampleHtml = `<div class="example-box"><span class="example-label">Example</span>${item.example}</div>`;
-            }
+            // [개선] 독음 및 예문 필드 엄격 검사
+            const readingHtml = (item.reading && item.reading.toString().trim() !== "") ? `<div class="reading">${item.reading}</div>` : '';
+            const exampleHtml = (item.example && item.example.toString().trim() !== "") ? `<div class="example-box"><span class="example-label">Example</span>${item.example}</div>` : '';
 
             card.innerHTML = `
                 <div class="side-btn"><i class="${count > 0 ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i><span class="count-num">${count > 0 ? count : ''}</span></div>
                 <div class="content-area">
                     <span class="word-text">${item.word}</span>
                     <div class="details">
-                        <div class="reading">${item.reading || ''}</div>
+                        ${readingHtml}
                         <div class="meaning">${item.meaning}</div>
-                        ${exampleHtml} 
+                        ${exampleHtml}
                     </div>
                 </div>`;
             
@@ -215,7 +207,7 @@
         });
         updateStatsUI();
     }
-    
+
     function updateStatsUI() {
         if (currentSheetName === "HOT" || currentSheetName === "TODAY") document.getElementById('detailStats').innerText = "";
         else { const stats = getSheetStats(currentSheetName); document.getElementById('detailStats').innerText = `${stats.total - stats.notLearned}/${stats.total}`; }
@@ -245,12 +237,15 @@
     async function syncCurrentSheet() {
         if(currentSheetName === "HOT" || currentSheetName === "TODAY") return;
         try {
+            // [중요] 기존 캐시 삭제 후 강제 갱신
+            localStorage.removeItem(`data_${currentSheetName}`);
             const res = await fetch(`${SCRIPT_URL}?sheetName=${encodeURIComponent(currentSheetName)}`);
             const result = await res.json();
             currentWords = result.data;
             localStorage.setItem(`data_${currentSheetName}`, JSON.stringify(currentWords));
+            alert("동기화 완료!");
             renderWords();
-        } catch (e) { console.log("Sync Error"); }
+        } catch (e) { console.log("Sync Error"); alert("동기화 실패"); }
     }
 
     function shuffleWords() { currentWords.sort(() => Math.random() - 0.5); renderWords(); }
