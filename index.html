@@ -176,6 +176,8 @@
         renderWords();
     }
 
+// index.html 내의 renderWords 함수 부분만 아래와 같이 수정되거나 전체 교체하시면 됩니다.
+
     function renderWords() {
         const listDiv = document.getElementById('wordList');
         listDiv.innerHTML = '';
@@ -185,9 +187,11 @@
             const card = document.createElement('div');
             card.className = `word-card ${count >= 5 ? 'lvl-5' : count >= 3 ? 'lvl-3' : count >= 1 ? 'lvl-1' : ''}`;
             
-            // 예문 필드 확인 및 렌더링
-            const exContent = item.example || "";
-            const exampleHtml = exContent.trim() !== "" ? `<div class="example-box"><span class="example-label">Example</span>${exContent}</div>` : '';
+            // [수정 포인트] 예문이 실제 문자로 존재하는지 엄격하게 검사합니다.
+            let exampleHtml = '';
+            if (item.example && String(item.example).trim().length > 0) {
+                exampleHtml = `<div class="example-box"><span class="example-label">Example</span>${item.example}</div>`;
+            }
 
             card.innerHTML = `
                 <div class="side-btn"><i class="${count > 0 ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i><span class="count-num">${count > 0 ? count : ''}</span></div>
@@ -196,7 +200,7 @@
                     <div class="details">
                         <div class="reading">${item.reading || ''}</div>
                         <div class="meaning">${item.meaning}</div>
-                        ${exampleHtml}
+                        ${exampleHtml} 
                     </div>
                 </div>`;
             
@@ -211,7 +215,7 @@
         });
         updateStatsUI();
     }
-
+    
     function updateStatsUI() {
         if (currentSheetName === "HOT" || currentSheetName === "TODAY") document.getElementById('detailStats').innerText = "";
         else { const stats = getSheetStats(currentSheetName); document.getElementById('detailStats').innerText = `${stats.total - stats.notLearned}/${stats.total}`; }
