@@ -10,6 +10,7 @@
         * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: env(safe-area-inset-top) 0 40px 0; overflow-x: hidden; width: 100vw; height: 100vh; }
         
+        /* 화면 애니메이션 */
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); background: var(--bg-color); box-sizing: border-box; overflow-y: auto; padding: 20px; padding-top: env(safe-area-inset-top); }
         .screen-main { z-index: 10; }
         .screen-detail { z-index: 20; transform: translateX(100%); box-shadow: -5px 0 15px rgba(0,0,0,0.1); }
@@ -23,6 +24,7 @@
         .icon-btn.sync { background: var(--ios-green); }
         .icon-btn.sort { background: #5856d6; }
 
+        /* 폴더 레이아웃 */
         .folder-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .folder-card { background: white; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; }
         .folder-card.today { border: 2.5px solid var(--ios-green); }
@@ -31,6 +33,7 @@
         .folder-name { font-size: 14px; font-weight: 700; color: #1c1c1e; }
         .folder-stats { font-size: 12px; color: #8e8e93; margin-top: 5px; font-weight: 600; }
 
+        /* 단어 카드 레이아웃 */
         .word-list { display: grid; gap: 15px; }
         .word-card { background: white; border-radius: 20px; display: flex; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); min-height: 110px; transition: all 0.3s; }
         
@@ -52,8 +55,7 @@
         .meaning { font-size: 19px; color: var(--ios-blue); font-weight: 700; margin-bottom: 8px; }
         
         /* 예문 스타일 */
-        .example-box { background: #f8f8f8; padding: 10px; border-radius: 10px; font-size: 14px; color: #444; line-height: 1.4; text-align: left; position: relative; }
-        .example-box::before { content: "ex"; position: absolute; top: -8px; left: 10px; background: #8e8e93; color: white; font-size: 10px; font-weight: bold; padding: 1px 4px; border-radius: 4px; }
+        .example-box { background: #f8f8f8; padding: 12px; border-radius: 10px; font-size: 14px; color: #444; line-height: 1.4; text-align: left; margin-top: 5px; border-left: 3px solid #ddd; }
 
         .hidden { display: none !important; }
     </style>
@@ -79,7 +81,9 @@
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDFQddYbqXTPPmJJe6iL5lECoB4aQeoyZSNRbZDAlB5KnJ_ey0Qk0CkA4MnZuCLd8s/exec";
+    // 사용자님의 새로운 앱스크립트 URL로 업데이트됨
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz2ujBpyV2Dgx9G4cLkfonRAY8-5gOCLB-ZUMi5hEHuJroQiUKeNus2EUw0veX3KRK6/exec";
+    
     let sheetList = [], currentWords = [], currentSheetName = "";
 
     async function init() {
@@ -98,9 +102,7 @@
     function renderFolderGrid(list) {
         const grid = document.getElementById('folderGrid');
         grid.innerHTML = '';
-        
-        const allWords = [];
-        const hotWords = [];
+        const allWords = [], hotWords = [];
         
         list.forEach(s => {
             const data = JSON.parse(localStorage.getItem(`data_${s}`) || "[]");
@@ -142,8 +144,7 @@
         const todayStr = new Date().toISOString().slice(0, 10);
         const seed = todayStr.split('-').join(''); 
         let seededWords = [...allWords];
-        let m = seededWords.length, t, i;
-        let s = parseInt(seed);
+        let m = seededWords.length, t, i, s = parseInt(seed);
         while (m) {
             i = Math.floor((Math.abs(Math.sin(s++)) * 10000) % m--);
             t = seededWords[m]; seededWords[m] = seededWords[i]; seededWords[i] = t;
@@ -168,8 +169,7 @@
     }
 
     function openSpecialSheet(type, words, title) {
-        currentSheetName = type;
-        currentWords = words;
+        currentSheetName = type; currentWords = words;
         document.getElementById('detailTitle').innerText = title;
         document.getElementById('screenDetail').classList.add('active');
         renderWords();
@@ -184,8 +184,7 @@
             const card = document.createElement('div');
             card.className = `word-card ${count >= 5 ? 'lvl-5' : count >= 3 ? 'lvl-3' : count >= 1 ? 'lvl-1' : ''}`;
             
-            // 예문 HTML (있을 때만 생성)
-            const exampleHtml = item.example ? `<div class="example-box">${item.example}</div>` : '';
+            const exampleHtml = item.example ? `<div class="example-box"><b>ex.</b> ${item.example}</div>` : '';
 
             card.innerHTML = `
                 <div class="side-btn"><i class="${count > 0 ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i><span class="count-num">${count > 0 ? count : ''}</span></div>
@@ -198,22 +197,12 @@
                     </div>
                 </div>`;
             
-            const sBtn = card.querySelector('.side-btn');
-            const cArea = card.querySelector('.content-area');
+            const sBtn = card.querySelector('.side-btn'), cArea = card.querySelector('.content-area');
             let timer;
-
             sBtn.addEventListener('touchstart', (e) => {
-                timer = setTimeout(() => {
-                    resetCount(sheetName, item.word);
-                    if(window.navigator.vibrate) window.navigator.vibrate(60);
-                    timer = null;
-                }, 700);
+                timer = setTimeout(() => { resetCount(sheetName, item.word); if(window.navigator.vibrate) window.navigator.vibrate(60); timer = null; }, 700);
             }, { passive: true });
-
-            sBtn.addEventListener('touchend', (e) => {
-                if (timer) { clearTimeout(timer); incrementCount(sheetName, item.word); }
-            });
-
+            sBtn.addEventListener('touchend', () => { if (timer) { clearTimeout(timer); incrementCount(sheetName, item.word); } });
             cArea.addEventListener('click', () => { card.classList.toggle('open'); });
             listDiv.appendChild(card);
         });
@@ -221,12 +210,8 @@
     }
 
     function updateStatsUI() {
-        if (currentSheetName === "HOT" || currentSheetName === "TODAY") {
-            document.getElementById('detailStats').innerText = "";
-        } else {
-            const stats = getSheetStats(currentSheetName);
-            document.getElementById('detailStats').innerText = `${stats.total - stats.notLearned}/${stats.total}`;
-        }
+        if (currentSheetName === "HOT" || currentSheetName === "TODAY") document.getElementById('detailStats').innerText = "";
+        else { const stats = getSheetStats(currentSheetName); document.getElementById('detailStats').innerText = `${stats.total - stats.notLearned}/${stats.total}`; }
     }
 
     function getCount(sheet, word) { return parseInt(localStorage.getItem(`cnt_${sheet}_${word}`) || "0"); }
@@ -237,26 +222,17 @@
         currentWords.sort((a, b) => {
             const aS = (currentSheetName === "HOT" || currentSheetName === "TODAY") ? a.originSheet : currentSheetName;
             const bS = (currentSheetName === "HOT" || currentSheetName === "TODAY") ? b.originSheet : currentSheetName;
-            const aC = getCount(aS, a.word) > 0 ? 1 : 0;
-            const bC = getCount(bS, b.word) > 0 ? 1 : 0;
+            const aC = getCount(aS, a.word) > 0 ? 1 : 0, bC = getCount(bS, b.word) > 0 ? 1 : 0;
             return bC - aC;
         });
         renderWords();
     }
 
     function setupSwipeBack() {
-        let startX = 0;
-        const detail = document.getElementById('screenDetail');
+        let startX = 0; const detail = document.getElementById('screenDetail');
         detail.addEventListener('touchstart', (e) => { startX = e.touches[0].pageX; });
-        detail.addEventListener('touchmove', (e) => {
-            let moveX = e.touches[0].pageX - startX;
-            if (startX < 50 && moveX > 0) detail.style.transform = `translateX(${moveX}px)`;
-        });
-        detail.addEventListener('touchend', (e) => {
-            let moveX = e.changedTouches[0].pageX - startX;
-            if (startX < 50 && moveX > 100) { detail.classList.remove('active'); renderFolderGrid(sheetList); }
-            detail.style.transform = '';
-        });
+        detail.addEventListener('touchmove', (e) => { let moveX = e.touches[0].pageX - startX; if (startX < 50 && moveX > 0) detail.style.transform = `translateX(${moveX}px)`; });
+        detail.addEventListener('touchend', (e) => { let moveX = e.changedTouches[0].pageX - startX; if (startX < 50 && moveX > 100) { detail.classList.remove('active'); renderFolderGrid(sheetList); } detail.style.transform = ''; });
     }
 
     async function syncCurrentSheet() {
