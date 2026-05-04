@@ -25,8 +25,7 @@
 
         .folder-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .folder-card { background: white; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; }
-        .folder-card.today { border: 2.5px solid var(--ios-green); }
-        .folder-card.hot { border: 2px solid var(--ios-red); }
+        .folder-card.today { border: 2.5px solid var(--ios-green); grid-column: span 2; } 
         .folder-icon { font-size: 40px; margin-bottom: 10px; display: block; }
         .folder-name { font-size: 14px; font-weight: 700; color: #1c1c1e; }
         .folder-stats { font-size: 12px; color: #8e8e93; margin-top: 5px; font-weight: 600; }
@@ -78,8 +77,8 @@
 </div>
 
 <script>
-    // 사용자님의 최신 스크립트 URL 반영 완료
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzFst3yuaiVbnLHB9LwsSAv9Uz8pV1HDQaeW9dbWguEvwFsbhyGAVr1fFHet5L-tX2s/exec";
+    // 사용자님의 기존 SCRIPT_URL을 여기에 넣으세요
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzgwssWklL8xlWb972-hPQ6jfU5AK0jASI6BZfBAAISEs8AiUN_lhBE972osAom5lx0/exec";
     
     let sheetList = [], currentWords = [], currentSheetName = "";
 
@@ -99,34 +98,27 @@
     function renderFolderGrid(list) {
         const grid = document.getElementById('folderGrid');
         grid.innerHTML = '';
-        const allWords = [], hotWords = [];
         
+        // 전체 단어 중 미암기(count=0) 단어만 수집
+        const unlearnedWords = [];
         list.forEach(s => {
             const data = JSON.parse(localStorage.getItem(`data_${s}`) || "[]");
             data.forEach(item => {
-                const wordObj = {...item, originSheet: s};
-                allWords.push(wordObj);
-                if (getCount(s, item.word) >= 5) hotWords.push(wordObj);
+                if (getCount(s, item.word) === 0) {
+                    unlearnedWords.push({...item, originSheet: s});
+                }
             });
         });
 
-        if (allWords.length > 0) {
-            const todayWords = getTodayWords(allWords);
-            const todayCard = document.createElement('div');
-            todayCard.className = 'folder-card today';
-            todayCard.onclick = () => openSpecialSheet("TODAY", todayWords, "📅 오늘의 단어");
-            todayCard.innerHTML = `<span class="folder-icon">📅</span><div class="folder-name">오늘의 단어</div><div class="folder-stats" style="color:var(--ios-green)">오늘의 50개</div>`;
-            grid.appendChild(todayCard);
-        }
+        // '오늘의 단어' 카드 (미암기 단어가 있을 때만 노출하거나 0개로 표시)
+        const todayWords = getTodayWords(unlearnedWords);
+        const todayCard = document.createElement('div');
+        todayCard.className = 'folder-card today';
+        todayCard.onclick = () => openSpecialSheet("TODAY", todayWords, "📅 오늘의 단어");
+        todayCard.innerHTML = `<span class="folder-icon">📅</span><div class="folder-name">오늘의 단어</div><div class="folder-stats" style="color:var(--ios-green)">미암기 중 50개 선별</div>`;
+        grid.appendChild(todayCard);
 
-        if (hotWords.length > 0) {
-            const hotCard = document.createElement('div');
-            hotCard.className = 'folder-card hot';
-            hotCard.onclick = () => openSpecialSheet("HOT", hotWords, "🔥 집중 공략");
-            hotCard.innerHTML = `<span class="folder-icon">🔥</span><div class="folder-name">집중 공략</div><div class="folder-stats" style="color:var(--ios-red)">미암기: ${hotWords.length}</div>`;
-            grid.appendChild(hotCard);
-        }
-
+        // 일반 단어장 폴더들
         list.slice().reverse().forEach(name => {
             const stats = getSheetStats(name);
             const card = document.createElement('div');
@@ -137,11 +129,15 @@
         });
     }
 
-    function getTodayWords(allWords) {
-        const todayStr = new Date().toISOString().slice(0, 10);
+    // 날짜 기반 시드 랜덤 함수 (하루 동안 고정)
+    function getTodayWords(allUnlearned) {
+        const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
         const seed = todayStr.split('-').join(''); 
-        let seededWords = [...allWords];
+        
+        let seededWords = [...allUnlearned];
         let m = seededWords.length, t, i, s = parseInt(seed);
+
+        // 결정론적 셔플 (매번 같은 날짜엔 같은 순서)
         while (m) {
             i = Math.floor((Math.abs(Math.sin(s++)) * 10000) % m--);
             t = seededWords[m]; seededWords[m] = seededWords[i]; seededWords[i] = t;
@@ -152,7 +148,7 @@
     function getSheetStats(sheetName) {
         const data = JSON.parse(localStorage.getItem(`data_${sheetName}`) || "[]");
         let notLearned = 0;
-        data.forEach(item => { if (getCount(sheetName, item.word) > 0) notLearned++; });
+        data.forEach(item => { if (getCount(sheetName, item.word) === 0) notLearned++; });
         return { notLearned, total: data.length };
     }
 
@@ -166,7 +162,8 @@
     }
 
     function openSpecialSheet(type, words, title) {
-        currentSheetName = type; currentWords = words;
+        currentSheetName = type;
+        currentWords = words;
         document.getElementById('detailTitle').innerText = title;
         document.getElementById('screenDetail').classList.add('active');
         renderWords();
@@ -176,12 +173,11 @@
         const listDiv = document.getElementById('wordList');
         listDiv.innerHTML = '';
         currentWords.forEach(item => {
-            const sheetName = (currentSheetName === "HOT" || currentSheetName === "TODAY") ? item.originSheet : currentSheetName;
+            const sheetName = (currentSheetName === "TODAY") ? item.originSheet : currentSheetName;
             const count = getCount(sheetName, item.word);
             const card = document.createElement('div');
             card.className = `word-card ${count >= 5 ? 'lvl-5' : count >= 3 ? 'lvl-3' : count >= 1 ? 'lvl-1' : ''}`;
             
-            // [개선] 독음 및 예문 필드 엄격 검사
             const readingHtml = (item.reading && item.reading.toString().trim() !== "") ? `<div class="reading">${item.reading}</div>` : '';
             const exampleHtml = (item.example && item.example.toString().trim() !== "") ? `<div class="example-box"><span class="example-label">Example</span>${item.example}</div>` : '';
 
@@ -209,7 +205,7 @@
     }
 
     function updateStatsUI() {
-        if (currentSheetName === "HOT" || currentSheetName === "TODAY") document.getElementById('detailStats').innerText = "";
+        if (currentSheetName === "TODAY") document.getElementById('detailStats').innerText = "";
         else { const stats = getSheetStats(currentSheetName); document.getElementById('detailStats').innerText = `${stats.total - stats.notLearned}/${stats.total}`; }
     }
 
@@ -219,8 +215,8 @@
 
     function sortUnlearned() {
         currentWords.sort((a, b) => {
-            const aS = (currentSheetName === "HOT" || currentSheetName === "TODAY") ? a.originSheet : currentSheetName;
-            const bS = (currentSheetName === "HOT" || currentSheetName === "TODAY") ? b.originSheet : currentSheetName;
+            const aS = (currentSheetName === "TODAY") ? a.originSheet : currentSheetName;
+            const bS = (currentSheetName === "TODAY") ? b.originSheet : currentSheetName;
             const aC = getCount(aS, a.word) > 0 ? 1 : 0, bC = getCount(bS, b.word) > 0 ? 1 : 0;
             return bC - aC;
         });
@@ -235,9 +231,8 @@
     }
 
     async function syncCurrentSheet() {
-        if(currentSheetName === "HOT" || currentSheetName === "TODAY") return;
+        if(currentSheetName === "TODAY") return;
         try {
-            // [중요] 기존 캐시 삭제 후 강제 갱신
             localStorage.removeItem(`data_${currentSheetName}`);
             const res = await fetch(`${SCRIPT_URL}?sheetName=${encodeURIComponent(currentSheetName)}`);
             const result = await res.json();
