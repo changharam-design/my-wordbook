@@ -226,18 +226,31 @@
         detail.addEventListener('touchend', (e) => { let moveX = e.changedTouches[0].pageX - startX; if (startX < 50 && moveX > 100) { detail.classList.remove('active'); renderFolderGrid(sheetList); } detail.style.transform = ''; });
     }
 
-    async function syncCurrentSheet() {
-        if(currentSheetName === "TODAY") return;
-        try {
-            localStorage.removeItem(`data_${currentSheetName}`);
-            const res = await fetch(`${SCRIPT_URL}?sheetName=${encodeURIComponent(currentSheetName)}`);
-            const result = await res.json();
+  async function syncCurrentSheet() {
+    if(currentSheetName === "TODAY") return;
+    try {
+        localStorage.removeItem(`data_${currentSheetName}`);
+        
+        // 주소 뒤에 시간을 붙여서 브라우저 캐시를 강제로 무시함 (중요!)
+        const nocacheUrl = `${SCRIPT_URL}?sheetName=${encodeURIComponent(currentSheetName)}&_=${new Date().getTime()}`;
+        
+        const res = await fetch(nocacheUrl);
+        if (!res.ok) throw new Error("네트워크 응답 없음");
+        
+        const result = await res.json();
+        if (result.data) {
             currentWords = result.data;
             localStorage.setItem(`data_${currentSheetName}`, JSON.stringify(currentWords));
             alert("동기화 완료!");
             renderWords();
-        } catch (e) { console.log("Sync Error"); alert("동기화 실패"); }
+        } else {
+            throw new Error("데이터 없음");
+        }
+    } catch (e) { 
+        console.error("상세 에러:", e); 
+        alert("동기화 실패: 네트워크 상태나 배포 권한을 확인해주세요."); 
     }
+}
 
     function shuffleWords() { currentWords.sort(() => Math.random() - 0.5); renderWords(); }
     init();
