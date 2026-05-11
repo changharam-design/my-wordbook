@@ -24,11 +24,12 @@
         .btn-group { display: flex; gap: 8px; align-items: center; }
         .icon-btn { background: var(--ios-blue); color: white; border: none; width: 38px; height: 38px; border-radius: 10px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .icon-btn.sync { background: var(--ios-green); }
+        .icon-btn.sort { background: #5856d6; } /* 정렬 버튼 색상 */
 
         .folder-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .folder-card { background: white; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; transition: background 0.3s; }
         .folder-card.today { border: 2.5px solid var(--ios-green); grid-column: span 2; } 
-        .folder-card.completed { background: var(--ios-pink); } /* 다 외운 단어장 색상 */
+        .folder-card.completed { background: var(--ios-pink); } 
         .folder-icon { font-size: 40px; margin-bottom: 10px; display: block; }
         .folder-name { font-size: 14px; font-weight: 700; color: #1c1c1e; }
         .folder-stats { font-size: 12px; color: #8e8e93; margin-top: 5px; font-weight: 600; }
@@ -63,6 +64,7 @@
         <div class="btn-group">
             <span id="detailStats" style="font-size:13px; font-weight:600; color:#8e8e93;"></span>
             <button class="icon-btn sync" id="syncBtn"><i class="fa-solid fa-rotate"></i></button>
+            <button class="icon-btn sort" id="sortBtn"><i class="fa-solid fa-arrow-up-wide-short"></i></button>
             <button class="icon-btn" id="shuffleBtn"><i class="fa-solid fa-shuffle"></i></button>
         </div>
     </header>
@@ -77,6 +79,7 @@
         init();
         setupSwipeBack();
         document.getElementById('syncBtn').onclick = syncCurrentSheet;
+        document.getElementById('sortBtn').onclick = sortUnlearned; // 정렬 버튼 연결
         document.getElementById('shuffleBtn').onclick = shuffleWords;
     };
 
@@ -100,7 +103,7 @@
         grid.innerHTML = '';
         
         let totalLearnedCount = 0;
-        const learnedWords = []; // 오늘의 단어용 (count=0인 단어들)
+        const learnedWords = []; 
 
         list.forEach(s => {
             const data = JSON.parse(localStorage.getItem(`data_${s}`) || "[]");
@@ -125,7 +128,6 @@
         list.slice().reverse().forEach(name => {
             const stats = getSheetStats(name);
             const card = document.createElement('div');
-            // 모든 단어가 count=0(learned)이면 completed 클래스 추가
             card.className = `folder-card ${stats.learned === stats.total && stats.total > 0 ? 'completed' : ''}`;
             card.onclick = () => openSheet(name);
             card.innerHTML = `<span class="folder-icon">📓</span><div class="folder-name">${name}</div><div class="folder-stats">${stats.learned} / ${stats.total}</div>`;
@@ -214,6 +216,18 @@
         document.getElementById('detailStats').innerText = (currentSheetName === "TODAY") ? "" : `${stats.learned}/${stats.total}`;
     }
 
+    // 정렬 함수: 체크된(모르는) 단어를 위로!
+    function sortUnlearned() {
+        currentWords.sort((a, b) => {
+            const sA = (currentSheetName === "TODAY") ? a.originSheet : currentSheetName;
+            const sB = (currentSheetName === "TODAY") ? b.originSheet : currentSheetName;
+            const countA = getCount(sA, a.word) > 0 ? 1 : 0;
+            const countB = getCount(sB, b.word) > 0 ? 1 : 0;
+            return countB - countA;
+        });
+        renderWords();
+    }
+
     async function syncCurrentSheet() {
         if(currentSheetName === "TODAY") return;
         const btn = document.getElementById('syncBtn');
@@ -222,9 +236,7 @@
             const res = await fetch(`${SCRIPT_URL}?sheetName=${encodeURIComponent(currentSheetName)}&v=${Date.now()}`);
             const result = await res.json();
             if (result.data) {
-                // 새 단어 동기화 시 로직 수정
                 const newData = result.data.map(item => {
-                    // 기존에 카운트 기록이 아예 없는 새 단어라면 기본값 1 부여
                     if (localStorage.getItem(`cnt_${currentSheetName}_${item.word}`) === null) {
                         localStorage.setItem(`cnt_${currentSheetName}_${item.word}`, 1);
                     }
