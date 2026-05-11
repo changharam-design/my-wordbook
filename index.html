@@ -24,7 +24,6 @@
         .btn-group { display: flex; gap: 8px; align-items: center; }
         .icon-btn { background: var(--ios-blue); color: white; border: none; width: 38px; height: 38px; border-radius: 10px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .icon-btn.sync { background: var(--ios-green); }
-        .icon-btn.sort { background: #5856d6; }
 
         .folder-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .folder-card { background: white; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; }
@@ -34,29 +33,20 @@
         .folder-stats { font-size: 12px; color: #8e8e93; margin-top: 5px; font-weight: 600; }
 
         .word-list { display: grid; gap: 15px; }
-        .word-card { background: white; border-radius: 20px; display: flex; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); min-height: 110px; transition: all 0.3s; }
-        
-        .side-btn { width: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f0f0f2; border-right: 1px solid #e5e5ea; cursor: pointer; flex-shrink: 0; transition: background 0.2s; }
-        .side-btn .count-num { font-size: 18px; font-weight: 900; color: #8e8e93; }
-        .side-btn i { font-size: 20px; color: #c7c7cc; margin-bottom: 4px; }
-
-        .word-card.lvl-1 .side-btn { background: var(--ios-yellow); }
-        .word-card.lvl-3 .side-btn { background: var(--ios-orange); }
-        .word-card.lvl-5 .side-btn { background: var(--ios-red); }
-        .word-card.lvl-1 .count-num, .word-card.lvl-3 .count-num, .word-card.lvl-5 .count-num,
-        .word-card.lvl-1 i, .word-card.lvl-3 i, .word-card.lvl-5 i { color: white; }
-
-        .content-area { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; justify-content: center; text-align: center; cursor: pointer; }
+        .word-card { background: white; border-radius: 20px; display: flex; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); min-height: 110px; }
+        .side-btn { width: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f0f0f2; border-right: 1px solid #e5e5ea; flex-shrink: 0; }
+        .side-btn .count-num { font-size: 18px; font-weight: 900; }
+        .content-area { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; justify-content: center; text-align: center; }
         .word-text { font-size: 32px; font-weight: 800; color: #1c1c1e; }
-        .details { margin-top: 12px; padding-top: 12px; border-top: 1px solid #f2f2f7; display: none; }
+        .details { margin-top: 12px; display: none; }
         .word-card.open .details { display: block; }
-        .reading { font-size: 14px; color: #8e8e93; margin-bottom: 2px; }
-        .meaning { font-size: 19px; color: var(--ios-blue); font-weight: 700; margin-bottom: 8px; }
+        .reading { font-size: 14px; color: #8e8e93; }
+        .meaning { font-size: 19px; color: var(--ios-blue); font-weight: 700; }
+        .example-box { background: #f8f8f7; padding: 12px; border-radius: 12px; font-size: 14px; margin-top: 8px; text-align: left; border-left: 4px solid #d1d1d6; color: #444; }
         
-        .example-box { background: #f8f8f7; padding: 12px; border-radius: 12px; font-size: 14px; color: #444; line-height: 1.5; text-align: left; margin-top: 8px; border-left: 4px solid #d1d1d6; word-break: break-all; }
-        .example-label { font-weight: 800; color: #8e8e93; font-size: 11px; text-transform: uppercase; margin-bottom: 4px; display: block; }
-
-        .hidden { display: none !important; }
+        .word-card.lvl-1 .side-btn { background: var(--ios-yellow); color: white; }
+        .word-card.lvl-3 .side-btn { background: var(--ios-orange); color: white; }
+        .word-card.lvl-5 .side-btn { background: var(--ios-red); color: white; }
     </style>
 </head>
 <body>
@@ -72,65 +62,80 @@
         <h1 id="detailTitle">단어장</h1>
         <div class="btn-group">
             <span id="detailStats" style="font-size:13px; font-weight:600; color:#8e8e93;"></span>
-            <button class="icon-btn sync" onclick="syncCurrentSheet()"><i class="fa-solid fa-rotate"></i></button>
-            <button class="icon-btn sort" onclick="sortUnlearned()" title="모르는 단어 정렬"><i class="fa-solid fa-arrow-up-wide-short"></i></button>
-            <button class="icon-btn" onclick="shuffleWords()"><i class="fa-solid fa-shuffle"></i></button>
+            <button class="icon-btn sync" id="syncBtn"><i class="fa-solid fa-rotate"></i></button>
+            <button class="icon-btn" id="shuffleBtn"><i class="fa-solid fa-shuffle"></i></button>
         </div>
     </header>
     <div id="wordList" class="word-list"></div>
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzgwssWklL8xlWb972-hPQ6jfU5AK0jASI6BZfBAAISEs8AiUN_lhBE972osAom5lx0/exec";
-    
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw66yY7qsga6QveLn-o3MsNdCKVa0o72C278cK8rw2bQG5Xgs2FPHeRl3tHlaziUunF/exec";
     let sheetList = [], currentWords = [], currentSheetName = "";
+
+    // 화면 로드 즉시 실행
+    window.onload = () => {
+        init();
+        setupSwipeBack();
+        document.getElementById('syncBtn').onclick = syncCurrentSheet;
+        document.getElementById('shuffleBtn').onclick = shuffleWords;
+    };
 
     async function init() {
         const cached = localStorage.getItem('sheet_list');
         if (cached) renderFolderGrid(JSON.parse(cached));
+        
         try {
-            const res = await fetch(SCRIPT_URL);
-            const result = await res.json();
-            sheetList = result.data;
-            localStorage.setItem('sheet_list', JSON.stringify(sheetList));
-            renderFolderGrid(sheetList);
-        } catch (e) { console.log("Offline"); }
-        setupSwipeBack();
+            // 사파리 캐시 방지를 위해 타임스탬프 추가 및 fetch 옵션 강화
+            const res = await fetch(`${SCRIPT_URL}?v=${Date.now()}`, {
+                method: 'GET',
+                mode: 'cors'
+            });
+            const text = await res.text();
+            const result = JSON.parse(text);
+            
+            if (result.data) {
+                sheetList = result.data;
+                localStorage.setItem('sheet_list', JSON.stringify(sheetList));
+                renderFolderGrid(sheetList);
+            }
+        } catch (e) { 
+            console.error("초기화 실패:", e); 
+        }
     }
 
     function renderFolderGrid(list) {
         const grid = document.getElementById('folderGrid');
-        const achievementArea = document.getElementById('achievementArea');
+        const achArea = document.getElementById('achievementArea');
+        if (!grid || !achArea) return;
+
         grid.innerHTML = '';
-        
-        let totalLearnedCount = 0; 
-        const unknownWords = []; 
+        let totalLearnedCount = 0;
+        const unknownWords = [];
 
         list.forEach(s => {
             const data = JSON.parse(localStorage.getItem(`data_${s}`) || "[]");
             data.forEach(item => {
                 const count = getCount(s, item.word);
                 if (count === 0) {
-                    totalLearnedCount++; 
+                    totalLearnedCount++;
                 } else {
                     unknownWords.push({...item, originSheet: s});
                 }
             });
         });
 
-        achievementArea.innerHTML = `
-            <div class="achievement-text">
-                총 <span class="achievement-count">${totalLearnedCount}</span>개의 단어를 외웠습니다! 🎉
-            </div>
-        `;
+        achArea.innerHTML = `<div class="achievement-text">총 <span class="achievement-count">${totalLearnedCount}</span>개의 단어를 외웠습니다! 🎉</div>`;
 
+        // 오늘의 단어
         const todayWords = getTodayWords(unknownWords);
         const todayCard = document.createElement('div');
         todayCard.className = 'folder-card today';
         todayCard.onclick = () => openSpecialSheet("TODAY", todayWords, "📅 오늘의 단어");
-        todayCard.innerHTML = `<span class="folder-icon">📅</span><div class="folder-name">오늘의 단어</div><div class="folder-stats" style="color:var(--ios-green)">모르는 단어 중 50개 선별</div>`;
+        todayCard.innerHTML = `<span class="folder-icon">📅</span><div class="folder-name">오늘의 단어</div><div class="folder-stats">모르는 단어 중 50개 고정</div>`;
         grid.appendChild(todayCard);
 
+        // 일반 폴더
         list.slice().reverse().forEach(name => {
             const stats = getSheetStats(name);
             const card = document.createElement('div');
@@ -142,21 +147,19 @@
     }
 
     function getTodayWords(allUnknown) {
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const seed = todayStr.split('-').join(''); 
-        let seededWords = [...allUnknown];
-        let m = seededWords.length, t, i, s = parseInt(seed);
+        const seed = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        let seeded = [...allUnknown], m = seeded.length, t, i, s = parseInt(seed);
         while (m) {
             i = Math.floor((Math.abs(Math.sin(s++)) * 10000) % m--);
-            t = seededWords[m]; seededWords[m] = seededWords[i]; seededWords[i] = t;
+            t = seeded[m]; seeded[m] = seeded[i]; seeded[i] = t;
         }
-        return seededWords.slice(0, 50);
+        return seeded.slice(0, 50);
     }
 
-    function getSheetStats(sheetName) {
-        const data = JSON.parse(localStorage.getItem(`data_${sheetName}`) || "[]");
+    function getSheetStats(name) {
+        const data = JSON.parse(localStorage.getItem(`data_${name}`) || "[]");
         let learned = 0;
-        data.forEach(item => { if (getCount(sheetName, item.word) === 0) learned++; });
+        data.forEach(item => { if (getCount(name, item.word) === 0) learned++; });
         return { learned, total: data.length };
     }
 
@@ -181,80 +184,76 @@
         const listDiv = document.getElementById('wordList');
         listDiv.innerHTML = '';
         currentWords.forEach(item => {
-            const sheetName = (currentSheetName === "TODAY") ? item.originSheet : currentSheetName;
-            const count = getCount(sheetName, item.word);
+            const sName = (currentSheetName === "TODAY") ? item.originSheet : currentSheetName;
+            const count = getCount(sName, item.word);
             const card = document.createElement('div');
             card.className = `word-card ${count >= 5 ? 'lvl-5' : count >= 3 ? 'lvl-3' : count >= 1 ? 'lvl-1' : ''}`;
             
-            const readingHtml = (item.reading && item.reading.toString().trim() !== "") ? `<div class="reading">${item.reading}</div>` : '';
-            const exampleHtml = (item.example && item.example.toString().trim() !== "") ? `<div class="example-box"><span class="example-label">Example</span>${item.example}</div>` : '';
-
             card.innerHTML = `
                 <div class="side-btn"><i class="${count > 0 ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i><span class="count-num">${count > 0 ? count : ''}</span></div>
                 <div class="content-area">
                     <span class="word-text">${item.word}</span>
                     <div class="details">
-                        ${readingHtml}
+                        ${item.reading ? `<div class="reading">${item.reading}</div>` : ''}
                         <div class="meaning">${item.meaning}</div>
-                        ${exampleHtml}
+                        ${item.example ? `<div class="example-box"><b>Example</b><br>${item.example}</div>` : ''}
                     </div>
                 </div>`;
             
             const sBtn = card.querySelector('.side-btn'), cArea = card.querySelector('.content-area');
             let timer;
-            sBtn.addEventListener('touchstart', (e) => {
-                timer = setTimeout(() => { resetCount(sheetName, item.word); if(window.navigator.vibrate) window.navigator.vibrate(60); timer = null; }, 700);
-            }, { passive: true });
-            sBtn.addEventListener('touchend', () => { if (timer) { clearTimeout(timer); incrementCount(sheetName, item.word); } });
-            cArea.addEventListener('click', () => { card.classList.toggle('open'); });
+            sBtn.addEventListener('touchstart', (e) => { 
+                timer = setTimeout(() => { 
+                    localStorage.removeItem(`cnt_${sName}_${item.word}`); 
+                    if(navigator.vibrate) navigator.vibrate(50); 
+                    renderWords(); 
+                    timer = null; 
+                }, 700); 
+            }, {passive: true});
+            sBtn.addEventListener('touchend', () => { 
+                if(timer) { 
+                    clearTimeout(timer); 
+                    const cur = getCount(sName, item.word);
+                    localStorage.setItem(`cnt_${sName}_${item.word}`, cur + 1);
+                    renderWords();
+                } 
+            });
+            cArea.onclick = () => card.classList.toggle('open');
             listDiv.appendChild(card);
         });
-        updateStatsUI();
-    }
-
-    function updateStatsUI() {
-        if (currentSheetName === "TODAY") document.getElementById('detailStats').innerText = "";
-        else { const stats = getSheetStats(currentSheetName); document.getElementById('detailStats').innerText = `${stats.learned}/${stats.total}`; }
-    }
-
-    function getCount(sheet, word) { return parseInt(localStorage.getItem(`cnt_${sheet}_${word}`) || "0"); }
-    function incrementCount(sheet, word) { localStorage.setItem(`cnt_${sheet}_${word}`, getCount(sheet, word) + 1); renderWords(); }
-    function resetCount(sheet, word) { localStorage.removeItem(`cnt_${sheet}_${word}`); renderWords(); }
-
-    function sortUnlearned() {
-        currentWords.sort((a, b) => {
-            const aS = (currentSheetName === "TODAY") ? a.originSheet : currentSheetName;
-            const bS = (currentSheetName === "TODAY") ? b.originSheet : currentSheetName;
-            const aC = getCount(aS, a.word) > 0 ? 1 : 0, bC = getCount(bS, b.word) > 0 ? 1 : 0;
-            return bC - aC;
-        });
-        renderWords();
-    }
-
-    function setupSwipeBack() {
-        let startX = 0; const detail = document.getElementById('screenDetail');
-        detail.addEventListener('touchstart', (e) => { startX = e.touches[0].pageX; });
-        detail.addEventListener('touchmove', (e) => { let moveX = e.touches[0].pageX - startX; if (startX < 50 && moveX > 0) detail.style.transform = `translateX(${moveX}px)`; });
-        detail.addEventListener('touchend', (e) => { let moveX = e.changedTouches[0].pageX - startX; if (startX < 50 && moveX > 100) { detail.classList.remove('active'); renderFolderGrid(sheetList); } detail.style.transform = ''; });
+        const stats = getSheetStats(currentSheetName);
+        document.getElementById('detailStats').innerText = (currentSheetName === "TODAY") ? "" : `${stats.learned}/${stats.total}`;
     }
 
     async function syncCurrentSheet() {
         if(currentSheetName === "TODAY") return;
-        const syncBtn = document.querySelector('.icon-btn.sync');
-        syncBtn.style.opacity = '0.5';
+        const btn = document.getElementById('syncBtn');
+        btn.style.opacity = '0.5';
         try {
-            localStorage.removeItem(`data_${currentSheetName}`);
-            const res = await fetch(`${SCRIPT_URL}?sheetName=${encodeURIComponent(currentSheetName)}&v=${Date.now()}`);
-            const result = await res.json();
-            currentWords = result.data;
-            localStorage.setItem(`data_${currentSheetName}`, JSON.stringify(currentWords));
-            alert("동기화 완료!");
-            renderWords();
-        } catch (e) { alert("동기화 실패"); } finally { syncBtn.style.opacity = '1'; }
+            const res = await fetch(`${SCRIPT_URL}?sheetName=${encodeURIComponent(currentSheetName)}&v=${Date.now()}`, {
+                method: 'GET',
+                mode: 'cors'
+            });
+            const text = await res.text();
+            const result = JSON.parse(text);
+            if (result.data) {
+                currentWords = result.data;
+                localStorage.setItem(`data_${currentSheetName}`, JSON.stringify(currentWords));
+                alert("✅ 동기화 완료!");
+                renderWords();
+            }
+        } catch (e) { alert("❌ 동기화 실패"); } finally { btn.style.opacity = '1'; }
     }
 
     function shuffleWords() { currentWords.sort(() => Math.random() - 0.5); renderWords(); }
-    init();
+    function getCount(s, w) { return parseInt(localStorage.getItem(`cnt_${s}_${w}`) || "0"); }
+
+    function setupSwipeBack() {
+        let startX = 0; const detail = document.getElementById('screenDetail');
+        detail.ontouchstart = (e) => { startX = e.touches[0].pageX; };
+        detail.ontouchmove = (e) => { let x = e.touches[0].pageX - startX; if(startX < 50 && x > 0) detail.style.transform = `translateX(${x}px)`; };
+        detail.ontouchend = (e) => { if(startX < 50 && e.changedTouches[0].pageX - startX > 100) { detail.classList.remove('active'); renderFolderGrid(sheetList); } detail.style.transform = ''; };
+    }
 </script>
 </body>
 </html>
