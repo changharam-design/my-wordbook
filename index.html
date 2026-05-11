@@ -6,7 +6,7 @@
     <title>나의 단어 앱</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --ios-blue: #007AFF; --bg-color: #f2f2f7; --card-bg: #ffffff; --ios-red: #ff3b30; --ios-orange: #ff9500; --ios-yellow: #ffcc00; --ios-green: #34c759; }
+        :root { --ios-blue: #007AFF; --bg-color: #f2f2f7; --card-bg: #ffffff; --ios-red: #ff3b30; --ios-orange: #ff9500; --ios-yellow: #ffcc00; --ios-green: #34c759; --ios-pink: #FFD1DC; }
         * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg-color); margin: 0; padding: env(safe-area-inset-top) 0 40px 0; overflow-x: hidden; width: 100vw; height: 100vh; }
         
@@ -26,8 +26,9 @@
         .icon-btn.sync { background: var(--ios-green); }
 
         .folder-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-        .folder-card { background: white; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; }
+        .folder-card { background: white; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; transition: background 0.3s; }
         .folder-card.today { border: 2.5px solid var(--ios-green); grid-column: span 2; } 
+        .folder-card.completed { background: var(--ios-pink); } /* 다 외운 단어장 색상 */
         .folder-icon { font-size: 40px; margin-bottom: 10px; display: block; }
         .folder-name { font-size: 14px; font-weight: 700; color: #1c1c1e; }
         .folder-stats { font-size: 12px; color: #8e8e93; margin-top: 5px; font-weight: 600; }
@@ -35,14 +36,13 @@
         .word-list { display: grid; gap: 15px; }
         .word-card { background: white; border-radius: 20px; display: flex; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); min-height: 110px; }
         .side-btn { width: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f0f0f2; border-right: 1px solid #e5e5ea; flex-shrink: 0; }
-        .side-btn .count-num { font-size: 18px; font-weight: 900; }
         .content-area { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; justify-content: center; text-align: center; }
         .word-text { font-size: 32px; font-weight: 800; color: #1c1c1e; }
         .details { margin-top: 12px; display: none; }
         .word-card.open .details { display: block; }
         .reading { font-size: 14px; color: #8e8e93; }
         .meaning { font-size: 19px; color: var(--ios-blue); font-weight: 700; }
-        .example-box { background: #f8f8f7; padding: 12px; border-radius: 12px; font-size: 14px; margin-top: 8px; text-align: left; border-left: 4px solid #d1d1d6; color: #444; }
+        .example-box { background: #f8f8f7; padding: 12px; border-radius: 12px; font-size: 14px; margin-top: 8px; text-align: left; border-left: 4px solid #d1d1d6; }
         
         .word-card.lvl-1 .side-btn { background: var(--ios-yellow); color: white; }
         .word-card.lvl-3 .side-btn { background: var(--ios-orange); color: white; }
@@ -73,7 +73,6 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw66yY7qsga6QveLn-o3MsNdCKVa0o72C278cK8rw2bQG5Xgs2FPHeRl3tHlaziUunF/exec";
     let sheetList = [], currentWords = [], currentSheetName = "";
 
-    // 화면 로드 즉시 실행
     window.onload = () => {
         init();
         setupSwipeBack();
@@ -84,34 +83,24 @@
     async function init() {
         const cached = localStorage.getItem('sheet_list');
         if (cached) renderFolderGrid(JSON.parse(cached));
-        
         try {
-            // 사파리 캐시 방지를 위해 타임스탬프 추가 및 fetch 옵션 강화
-            const res = await fetch(`${SCRIPT_URL}?v=${Date.now()}`, {
-                method: 'GET',
-                mode: 'cors'
-            });
-            const text = await res.text();
-            const result = JSON.parse(text);
-            
+            const res = await fetch(`${SCRIPT_URL}?v=${Date.now()}`);
+            const result = await res.json();
             if (result.data) {
                 sheetList = result.data;
                 localStorage.setItem('sheet_list', JSON.stringify(sheetList));
                 renderFolderGrid(sheetList);
             }
-        } catch (e) { 
-            console.error("초기화 실패:", e); 
-        }
+        } catch (e) { console.error("Init Error"); }
     }
 
     function renderFolderGrid(list) {
         const grid = document.getElementById('folderGrid');
         const achArea = document.getElementById('achievementArea');
-        if (!grid || !achArea) return;
-
         grid.innerHTML = '';
+        
         let totalLearnedCount = 0;
-        const unknownWords = [];
+        const learnedWords = []; // 오늘의 단어용 (count=0인 단어들)
 
         list.forEach(s => {
             const data = JSON.parse(localStorage.getItem(`data_${s}`) || "[]");
@@ -119,36 +108,34 @@
                 const count = getCount(s, item.word);
                 if (count === 0) {
                     totalLearnedCount++;
-                } else {
-                    unknownWords.push({...item, originSheet: s});
+                    learnedWords.push({...item, originSheet: s});
                 }
             });
         });
 
         achArea.innerHTML = `<div class="achievement-text">총 <span class="achievement-count">${totalLearnedCount}</span>개의 단어를 외웠습니다! 🎉</div>`;
 
-        // 오늘의 단어
-        const todayWords = getTodayWords(unknownWords);
+        const todayWords = getTodayWords(learnedWords);
         const todayCard = document.createElement('div');
         todayCard.className = 'folder-card today';
         todayCard.onclick = () => openSpecialSheet("TODAY", todayWords, "📅 오늘의 단어");
-        todayCard.innerHTML = `<span class="folder-icon">📅</span><div class="folder-name">오늘의 단어</div><div class="folder-stats">모르는 단어 중 50개 고정</div>`;
+        todayCard.innerHTML = `<span class="folder-icon">📅</span><div class="folder-name">오늘의 단어</div><div class="folder-stats">복기용(암기완료) 50개 선정</div>`;
         grid.appendChild(todayCard);
 
-        // 일반 폴더
         list.slice().reverse().forEach(name => {
             const stats = getSheetStats(name);
             const card = document.createElement('div');
-            card.className = 'folder-card';
+            // 모든 단어가 count=0(learned)이면 completed 클래스 추가
+            card.className = `folder-card ${stats.learned === stats.total && stats.total > 0 ? 'completed' : ''}`;
             card.onclick = () => openSheet(name);
             card.innerHTML = `<span class="folder-icon">📓</span><div class="folder-name">${name}</div><div class="folder-stats">${stats.learned} / ${stats.total}</div>`;
             grid.appendChild(card);
         });
     }
 
-    function getTodayWords(allUnknown) {
+    function getTodayWords(allLearned) {
         const seed = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        let seeded = [...allUnknown], m = seeded.length, t, i, s = parseInt(seed);
+        let seeded = [...allLearned], m = seeded.length, t, i, s = parseInt(seed);
         while (m) {
             i = Math.floor((Math.abs(Math.sin(s++)) * 10000) % m--);
             t = seeded[m]; seeded[m] = seeded[i]; seeded[i] = t;
@@ -162,6 +149,8 @@
         data.forEach(item => { if (getCount(name, item.word) === 0) learned++; });
         return { learned, total: data.length };
     }
+
+    function getCount(s, w) { return parseInt(localStorage.getItem(`cnt_${s}_${w}`) || "0"); }
 
     async function openSheet(name) {
         currentSheetName = name;
@@ -230,14 +219,18 @@
         const btn = document.getElementById('syncBtn');
         btn.style.opacity = '0.5';
         try {
-            const res = await fetch(`${SCRIPT_URL}?sheetName=${encodeURIComponent(currentSheetName)}&v=${Date.now()}`, {
-                method: 'GET',
-                mode: 'cors'
-            });
-            const text = await res.text();
-            const result = JSON.parse(text);
+            const res = await fetch(`${SCRIPT_URL}?sheetName=${encodeURIComponent(currentSheetName)}&v=${Date.now()}`);
+            const result = await res.json();
             if (result.data) {
-                currentWords = result.data;
+                // 새 단어 동기화 시 로직 수정
+                const newData = result.data.map(item => {
+                    // 기존에 카운트 기록이 아예 없는 새 단어라면 기본값 1 부여
+                    if (localStorage.getItem(`cnt_${currentSheetName}_${item.word}`) === null) {
+                        localStorage.setItem(`cnt_${currentSheetName}_${item.word}`, 1);
+                    }
+                    return item;
+                });
+                currentWords = newData;
                 localStorage.setItem(`data_${currentSheetName}`, JSON.stringify(currentWords));
                 alert("✅ 동기화 완료!");
                 renderWords();
@@ -246,7 +239,6 @@
     }
 
     function shuffleWords() { currentWords.sort(() => Math.random() - 0.5); renderWords(); }
-    function getCount(s, w) { return parseInt(localStorage.getItem(`cnt_${s}_${w}`) || "0"); }
 
     function setupSwipeBack() {
         let startX = 0; const detail = document.getElementById('screenDetail');
