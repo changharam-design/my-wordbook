@@ -24,7 +24,7 @@
         .btn-group { display: flex; gap: 8px; align-items: center; }
         .icon-btn { background: var(--ios-blue); color: white; border: none; width: 38px; height: 38px; border-radius: 10px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .icon-btn.sync { background: var(--ios-green); }
-        .icon-btn.sort { background: #5856d6; } /* 정렬 버튼 색상 */
+        .icon-btn.sort { background: #5856d6; }
 
         .folder-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .folder-card { background: white; border-radius: 20px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; transition: background 0.3s; }
@@ -38,7 +38,11 @@
         .word-card { background: white; border-radius: 20px; display: flex; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); min-height: 110px; }
         .side-btn { width: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f0f0f2; border-right: 1px solid #e5e5ea; flex-shrink: 0; }
         .content-area { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+        
         .word-text { font-size: 32px; font-weight: 800; color: #1c1c1e; }
+        /* 동사 전용 레이아웃 스타일 */
+        .verb-example-main { font-size: 15px; color: #444; margin-top: 8px; font-weight: 500; background: #f8f8f7; padding: 8px 12px; border-radius: 10px; text-align: left; border-left: 4px solid var(--ios-blue); word-break: break-all; }
+        
         .details { margin-top: 12px; display: none; }
         .word-card.open .details { display: block; }
         .reading { font-size: 14px; color: #8e8e93; }
@@ -79,7 +83,7 @@
         init();
         setupSwipeBack();
         document.getElementById('syncBtn').onclick = syncCurrentSheet;
-        document.getElementById('sortBtn').onclick = sortUnlearned; // 정렬 버튼 연결
+        document.getElementById('sortBtn').onclick = sortUnlearned; 
         document.getElementById('shuffleBtn').onclick = shuffleWords;
     };
 
@@ -174,21 +178,46 @@
     function renderWords() {
         const listDiv = document.getElementById('wordList');
         listDiv.innerHTML = '';
+        
+        // 탭 이름에 "동사"가 포함되어 있는지 판별
+        const isVerbSheet = currentSheetName.includes("동사");
+
         currentWords.forEach(item => {
             const sName = (currentSheetName === "TODAY") ? item.originSheet : currentSheetName;
             const count = getCount(sName, item.word);
             const card = document.createElement('div');
             card.className = `word-card ${count >= 5 ? 'lvl-5' : count >= 3 ? 'lvl-3' : count >= 1 ? 'lvl-1' : ''}`;
             
-            card.innerHTML = `
-                <div class="side-btn"><i class="${count > 0 ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i><span class="count-num">${count > 0 ? count : ''}</span></div>
-                <div class="content-area">
-                    <span class="word-text">${item.word}</span>
+            // 레이아웃 동적 생성구문
+            let contentHtml = `<span class="word-text">${item.word}</span>`;
+            let detailsHtml = '';
+
+            if (isVerbSheet) {
+                // [동사 전용 레이아웃] 예문을 메인에 바로 노출 (예문이 있을 때만)
+                if (item.example) {
+                    contentHtml += `<div class="verb-example-main"><b>Example</b><br>${item.example}</div>`;
+                }
+                // 클릭하면 요미가나와 뜻만 노출
+                detailsHtml = `
+                    <div class="details">
+                        ${item.reading ? `<div class="reading">${item.reading}</div>` : ''}
+                        <div class="meaning">${item.meaning}</div>
+                    </div>`;
+            } else {
+                // [기본 레이아웃] 기존 방식 유지 (클릭 시 예문까지 한 번에)
+                detailsHtml = `
                     <div class="details">
                         ${item.reading ? `<div class="reading">${item.reading}</div>` : ''}
                         <div class="meaning">${item.meaning}</div>
                         ${item.example ? `<div class="example-box"><b>Example</b><br>${item.example}</div>` : ''}
-                    </div>
+                    </div>`;
+            }
+
+            card.innerHTML = `
+                <div class="side-btn"><i class="${count > 0 ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i><span class="count-num">${count > 0 ? count : ''}</span></div>
+                <div class="content-area">
+                    ${contentHtml}
+                    ${detailsHtml}
                 </div>`;
             
             const sBtn = card.querySelector('.side-btn'), cArea = card.querySelector('.content-area');
@@ -216,7 +245,6 @@
         document.getElementById('detailStats').innerText = (currentSheetName === "TODAY") ? "" : `${stats.learned}/${stats.total}`;
     }
 
-    // 정렬 함수: 체크된(모르는) 단어를 위로!
     function sortUnlearned() {
         currentWords.sort((a, b) => {
             const sA = (currentSheetName === "TODAY") ? a.originSheet : currentSheetName;
